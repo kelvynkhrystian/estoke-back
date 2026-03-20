@@ -1,47 +1,168 @@
-import pool from '../config/database.js'
-import bcrypt from 'bcrypt'
 import jwt from 'jsonwebtoken'
+import bcrypt from 'bcrypt'
+import { v4 as uuidv4 } from 'uuid'
+import pool from '../config/database.js'
+import {
+  JWT_SECRET,
+  JWT_REFRESH_SECRET,
+  ACCESS_EXPIRES,
+  REFRESH_EXPIRES
+} from '../config/jwt.js'
 
-const SECRET = 'seu_segredo_super_forte'
-
-// LOGIN
+// 🔐 LOGIN
 export const login = async ({ email, password }) => {
-  const [rows] = await pool.query(
+  const [users] = await pool.query(
     'SELECT * FROM users WHERE email = ? AND is_active = 1',
     [email]
   )
 
-  if (rows.length === 0) {
+  if (users.length === 0) {
     throw new Error('Usuário não encontrado')
   }
 
-  const user = rows[0]
+  const user = users[0]
 
-  // ⚠️ TEMPORÁRIO (porque sua senha está sem hash)
-  const isMatch = password === user.password_hash
-
-  // 🔒 depois você troca pra bcrypt.compare
+  // 🔒 bcrypt compare
+  const isMatch = await bcrypt.compare(password, user.password_hash)
 
   if (!isMatch) {
     throw new Error('Senha inválida')
   }
 
-  const token = jwt.sign(
+  // 🧹 remove tokens antigos (boa prática)
+  await pool.query(
+    'DELETE FROM refresh_tokens WHERE user_id = ?',
+    [user.id]
+  )
+
+  // 🔑 ACCESS TOKEN
+  const accessToken = jwt.sign(
     {
       id: user.id,
       role: user.role,
       store_id: user.store_id
     },
-    SECRET,
-    { expiresIn: '1d' }
+    JWT_SECRET,
+    { expiresIn: ACCESS_EXPIRES }
   )
 
+  // 🔁 REFRESH TOKEN
+  const refreshToken = jwt.sign(
+    {
+      id: user.id,
+      tokenId: uuidv4()
+    },
+    JWT_REFRESH_SECRET,
+    { expiresIn: REFRESH_EXPIRES }
+  )
+
+  // salva no banco
+  await pool.query(`
+    INSERT INTO refresh_tokens (user_id, token, expires_at)
+    VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 7 DAY))
+  `, [user.id, refreshToken])
+
   return {
-    token,
+    accessToken,
+    refreshToken,
     user: {
       id: user.id,
       name: user.name,
-      role: user.role
+      role: user.role,
+      store_id: user.store_id
     }
+  }
+}
+
+//////////////////////////////////////////////////////////
+
+// 🔁 REFRESH TOKEN
+export const refresh = async (refreshToken) => {
+  try {
+    const decoded = jwt.verify(refreshToken, JWT_REFRESH_SECRET)
+
+    const [rows] = await pool.query(
+      'SELECT * FROM refresh_tokens WHERE token = ? AND expires_at > NOW()',
+      [refreshToken]
+    )
+
+    if (rows.length === 0) {
+      throw new Error('Refresh token expirado ou inválido')
+    }
+
+    // busca usuário atualizado
+    const [users] = await pool.query(
+      'SELECT id, role, store_id FROM users WHERE id = ? AND is_active = 1',
+      [decoded.id]
+    )
+
+    if (users.length === 0) {
+      throw new Error('Usuário inválido')
+    }
+
+    const user = users[0]
+
+    const newAccessToken = jwt.sign(
+      {
+        id: user.id,
+        role: user.role,
+        store_id: user.store_id
+      },
+      JWT_SECRET,
+      { expiresIn: ACCESS_EXPIRES }
+    )
+
+    return { accessToken: newAccessToken }
+
+  } catch (err) {
+    throw new Error('Refresh inválido')
+  }
+}
+
+//////////////////////////////////////////////////////////
+
+// 🚪 LOGOUT
+export const logout = async (refreshToken) => {
+  await pool.query(
+    'DELETE FROM refresh_tokens WHERE token = ?',
+    [refreshToken]
+  )
+
+  return { message: 'Logout realizado com sucesso' }
+}
+
+//////////////////////////////////////////////////////////
+
+// 👤 REGISTER (admin cria)
+export const register = async ({
+  name,
+  email,
+  password,
+  role = 'employee',
+  store_id = null
+}) => {
+  const [existing] = await pool.query(
+    'SELECT id FROM users WHERE email = ?',
+    [email]
+  )
+
+  if (existing.length > 0) {
+    throw new Error('E-mail já cadastrado')
+  }
+
+  // 🔒 hash da senha
+  const password_hash = await bcrypt.hash(password, 10)
+
+  const [result] = await pool.query(`
+    INSERT INTO users (name, email, password_hash, role, store_id, is_active)
+    VALUES (?, ?, ?, ?, ?, 1)
+  `, [name, email, password_hash, role, store_id])
+
+  return {
+    id: result.insertId,
+    name,
+    email,
+    role,
+    store_id
   }
 }

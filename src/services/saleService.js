@@ -7,35 +7,28 @@ export const createSale = async ({ items, store_id, created_by }) => {
   try {
     await conn.beginTransaction()
 
-    // 1. cria venda
     const [saleResult] = await conn.query(`
       INSERT INTO sales (store_id, created_by, total_amount)
       VALUES (?, ?, 0)
     `, [store_id, created_by])
 
     const saleId = saleResult.insertId
-
     let totalAmount = 0
 
-    // 2. processa itens
     for (const item of items) {
       const { product_id, quantity, unit_price } = item
 
-      // validação básica
       if (!product_id || !quantity || !unit_price) {
         throw new Error('Item inválido')
       }
 
-      // soma total
       totalAmount += quantity * unit_price
 
-      // salva item
       await conn.query(`
         INSERT INTO sale_items (sale_id, product_id, quantity, unit_price)
         VALUES (?, ?, ?, ?)
       `, [saleId, product_id, quantity, unit_price])
 
-      // busca estoque por loja 🔥
       const [stockRows] = await conn.query(
         'SELECT * FROM stock WHERE product_id = ? AND store_id = ?',
         [product_id, store_id]
@@ -51,21 +44,18 @@ export const createSale = async ({ items, store_id, created_by }) => {
         throw new Error('Estoque insuficiente')
       }
 
-      // atualiza estoque
       await conn.query(`
         UPDATE stock SET quantity = ?
         WHERE product_id = ? AND store_id = ?
       `, [newQty, product_id, store_id])
 
-      // registra movimento 🔥
       await conn.query(`
-        INSERT INTO stock_movements 
+        INSERT INTO stock_movements
         (product_id, store_id, quantity, type, created_by, reference_type, reference_id)
         VALUES (?, ?, ?, 'OUT', ?, 'SALE', ?)
       `, [product_id, store_id, quantity, created_by, saleId])
     }
 
-    // 3. atualiza total da venda
     await conn.query(`
       UPDATE sales SET total_amount = ?
       WHERE id = ?
@@ -78,7 +68,6 @@ export const createSale = async ({ items, store_id, created_by }) => {
       sale_id: saleId,
       total: totalAmount
     }
-
   } catch (error) {
     await conn.rollback()
     throw error
@@ -88,22 +77,40 @@ export const createSale = async ({ items, store_id, created_by }) => {
 }
 
 // LISTAR VENDAS
-export const getSales = async () => {
-  const [rows] = await pool.query(`
+export const getSales = async (store_id, role) => {
+  let query = `
     SELECT s.*, u.name AS user_name
     FROM sales s
     JOIN users u ON s.created_by = u.id
-    ORDER BY s.created_at DESC
-  `)
+  `
+  const params = []
 
+  if (role !== 'admin') {
+    query += ' WHERE s.store_id = ?'
+    params.push(store_id)
+  }
+
+  query += ' ORDER BY s.created_at DESC'
+
+  const [rows] = await pool.query(query, params)
   return rows
 }
 
 // DETALHE DA VENDA
-export const getSaleById = async (id) => {
-  const [sale] = await pool.query(`
-    SELECT * FROM sales WHERE id = ?
-  `, [id])
+export const getSaleById = async (id, store_id, role) => {
+  let query = 'SELECT * FROM sales WHERE id = ?'
+  const params = [id]
+
+  if (role !== 'admin') {
+    query += ' AND store_id = ?'
+    params.push(store_id)
+  }
+
+  const [saleRows] = await pool.query(query, params)
+
+  if (saleRows.length === 0) {
+    return null
+  }
 
   const [items] = await pool.query(`
     SELECT si.*, p.name AS product_name
@@ -113,7 +120,7 @@ export const getSaleById = async (id) => {
   `, [id])
 
   return {
-    ...sale[0],
+    ...saleRows[0],
     items
   }
 }

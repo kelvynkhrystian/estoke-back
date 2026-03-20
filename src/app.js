@@ -1,7 +1,14 @@
 import express from 'express'
 import pool from './config/database.js'
+
 import categoryRoutes from './routes/categoryRoutes.js'
 import productRoutes from './routes/productRoutes.js'
+import stockRoutes from './routes/stockRoutes.js'
+import saleRoutes from './routes/saleRoutes.js'
+
+
+
+
 
 const app = express()
 
@@ -20,6 +27,8 @@ app.get('/test-db', async (req, res) => {
 
 app.use('/categories', categoryRoutes)
 app.use('/products', productRoutes)
+app.use('/stock', stockRoutes)
+app.use('/sales', saleRoutes)
 
 
 export default app

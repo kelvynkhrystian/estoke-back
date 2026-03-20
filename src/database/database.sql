@@ -15,6 +15,9 @@ CREATE TABLE stores (
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
 
+-- loja padrão
+INSERT INTO stores (name) VALUES ('Loja Principal');
+
 -- ================================
 -- USERS
 -- ================================
@@ -32,16 +35,34 @@ CREATE TABLE users (
   FOREIGN KEY (store_id) REFERENCES stores(id)
 );
 
+-- admin padrão
+INSERT INTO users (name, email, password_hash, role, store_id)
+VALUES (
+  'admin',
+  'admin@gmail.com',
+  'admin',
+  'admin',
+  1
+);
+
 -- ================================
--- SETTINGS
+-- APP CONFIG
 -- ================================
-CREATE TABLE settings (
+CREATE TABLE app_config (
   id INT AUTO_INCREMENT PRIMARY KEY,
-  `key` VARCHAR(100) UNIQUE,
-  `value` TEXT,
+  app_name VARCHAR(150),
+  slogan VARCHAR(255),
+  theme VARCHAR(50) DEFAULT 'light',
+  logo_url TEXT,
+  primary_color VARCHAR(20),
+  secondary_color VARCHAR(20),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
 );
+
+-- config inicial opcional
+INSERT INTO app_config (app_name, slogan, theme)
+VALUES ('Estoke', 'Seu sistema de estoque', 'light');
 
 -- ================================
 -- CATEGORIES
@@ -50,7 +71,6 @@ CREATE TABLE categories (
   id INT AUTO_INCREMENT PRIMARY KEY,
   name VARCHAR(100) NOT NULL,
   is_active BOOLEAN DEFAULT TRUE,
-
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
@@ -69,8 +89,7 @@ CREATE TABLE products (
   sale_price DECIMAL(10,2),
   min_stock INT DEFAULT 0,
   is_active BOOLEAN DEFAULT TRUE,
-
-  category_id INT NULL, 
+  category_id INT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
@@ -101,15 +120,11 @@ CREATE TABLE stock_movements (
   id INT AUTO_INCREMENT PRIMARY KEY,
   product_id INT NOT NULL,
   store_id INT NOT NULL,
-
   type ENUM('IN', 'OUT', 'ADJUSTMENT') NOT NULL,
   quantity INT NOT NULL,
-
   reference_type VARCHAR(50),
   reference_id INT,
-
   created_by INT NOT NULL,
-
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
@@ -119,59 +134,13 @@ CREATE TABLE stock_movements (
 );
 
 -- ================================
--- STOCK TRANSFERS
--- ================================
-CREATE TABLE stock_transfers (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-
-  from_store_id INT NOT NULL,
-  to_store_id INT NOT NULL,
-
-  status ENUM('PENDING', 'CONFIRMED', 'DIVERGENT', 'REJECTED') DEFAULT 'PENDING',
-
-  created_by INT NOT NULL,
-  confirmed_by INT NULL,
-
-  notes TEXT,
-
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-  confirmed_at TIMESTAMP NULL,
-
-  FOREIGN KEY (from_store_id) REFERENCES stores(id),
-  FOREIGN KEY (to_store_id) REFERENCES stores(id),
-  FOREIGN KEY (created_by) REFERENCES users(id),
-  FOREIGN KEY (confirmed_by) REFERENCES users(id)
-);
-
--- ================================
--- TRANSFER ITEMS
--- ================================
-CREATE TABLE stock_transfer_items (
-  id INT AUTO_INCREMENT PRIMARY KEY,
-
-  transfer_id INT NOT NULL,
-  product_id INT NOT NULL,
-
-  quantity_sent INT NOT NULL,
-  quantity_received INT NULL,
-
-  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-
-  FOREIGN KEY (transfer_id) REFERENCES stock_transfers(id),
-  FOREIGN KEY (product_id) REFERENCES products(id)
-);
-
--- ================================
 -- SALES
 -- ================================
 CREATE TABLE sales (
   id INT AUTO_INCREMENT PRIMARY KEY,
-  store_id INT,
-  total_amount DECIMAL(10,2),
-  created_by INT,
-
+  store_id INT NOT NULL,
+  total_amount DECIMAL(10,2) DEFAULT 0,
+  created_by INT NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
@@ -184,26 +153,13 @@ CREATE TABLE sales (
 -- ================================
 CREATE TABLE sale_items (
   id INT AUTO_INCREMENT PRIMARY KEY,
-  sale_id INT,
-  product_id INT,
-  quantity INT,
-  unit_price DECIMAL(10,2),
-
+  sale_id INT NOT NULL,
+  product_id INT NOT NULL,
+  quantity INT NOT NULL,
+  unit_price DECIMAL(10,2) NOT NULL,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
 
   FOREIGN KEY (sale_id) REFERENCES sales(id),
   FOREIGN KEY (product_id) REFERENCES products(id)
-);
-
--- ================================
--- ADMIN DEFAULT
--- ================================
-INSERT INTO users (name, email, password_hash, role, store_id)
-VALUES (
-  'admin',
-  'admin@gmail.com',
-  'admin', -- ⚠️ depois você precisa criptografar (bcrypt)
-  'admin',
-  NULL
 );

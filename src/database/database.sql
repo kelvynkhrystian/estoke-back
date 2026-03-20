@@ -40,7 +40,7 @@ INSERT INTO users (name, email, password_hash, role, store_id)
 VALUES (
   'admin',
   'admin@gmail.com',
-  'admin',
+  '$2b$10$DFdNFmz5iM9QJJtk/vaQeuFvBzdr/MfBmQdPszdCGatiiM.6QEGJG',
   'admin',
   1
 );
@@ -176,3 +176,15 @@ CREATE TABLE refresh_tokens (
 
   FOREIGN KEY (user_id) REFERENCES users(id)
 );
+
+
+-- ================================
+-- INDEXES (PERFORMANCE)
+-- ================================
+
+CREATE INDEX idx_products_category ON products(category_id);
+CREATE INDEX idx_stock_product_store ON stock(product_id, store_id);
+CREATE INDEX idx_stock_movements_product ON stock_movements(product_id);
+CREATE INDEX idx_sales_store ON sales(store_id);
+CREATE INDEX idx_sale_items_sale ON sale_items(sale_id);
+CREATE INDEX idx_refresh_user ON refresh_tokens(user_id);

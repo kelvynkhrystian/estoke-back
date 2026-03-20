@@ -15,6 +15,14 @@ const app = express()
 
 app.use(express.json())
 
+app.get('/', (req, res) => {
+  res.json({
+    status: 'API ONLINE 🚀',
+    name: 'Estoke API',
+    version: '1.0.0'
+  })
+})
+
 // teste de conexão
 app.get('/test-db', async (req, res) => {
   try {

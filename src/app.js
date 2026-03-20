@@ -1,5 +1,6 @@
 import express from 'express'
 import pool from './config/database.js'
+import logger from './config/logger.js'
 
 import categoryRoutes from './routes/categoryRoutes.js'
 import productRoutes from './routes/productRoutes.js'
@@ -14,6 +15,15 @@ import authRoutes from './routes/authRoutes.js'
 const app = express()
 
 app.use(express.json())
+
+app.use((req, res, next) => {
+  logger.info({
+    method: req.method,
+    url: req.url,
+    body: req.body
+  })
+  next()
+})
 
 app.get('/', (req, res) => {
   res.json({
@@ -41,6 +51,17 @@ app.use('/sales', saleRoutes)
 app.use('/config', configRoutes)
 app.use('/stores', storeRoutes)
 app.use('/auth', authRoutes)
+
+app.use((err, req, res, next) => {
+  logger.error({
+    message: err.message,
+    stack: err.stack
+  })
+
+  res.status(500).json({
+    error: 'Erro interno do servidor'
+  })
+})
 
 
 export default app

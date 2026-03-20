@@ -5,8 +5,9 @@ import categoryRoutes from './routes/categoryRoutes.js'
 import productRoutes from './routes/productRoutes.js'
 import stockRoutes from './routes/stockRoutes.js'
 import saleRoutes from './routes/saleRoutes.js'
-
-
+import configRoutes from './routes/configRoutes.js'
+import storeRoutes from './routes/storeRoutes.js'
+import authRoutes from './routes/authRoutes.js'
 
 
 
@@ -29,6 +30,9 @@ app.use('/categories', categoryRoutes)
 app.use('/products', productRoutes)
 app.use('/stock', stockRoutes)
 app.use('/sales', saleRoutes)
+app.use('/config', configRoutes)
+app.use('/stores', storeRoutes)
+app.use('/auth', authRoutes)
 
 
 export default app

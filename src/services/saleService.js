@@ -86,3 +86,34 @@ export const createSale = async ({ items, store_id, created_by }) => {
     conn.release()
   }
 }
+
+// LISTAR VENDAS
+export const getSales = async () => {
+  const [rows] = await pool.query(`
+    SELECT s.*, u.name AS user_name
+    FROM sales s
+    JOIN users u ON s.created_by = u.id
+    ORDER BY s.created_at DESC
+  `)
+
+  return rows
+}
+
+// DETALHE DA VENDA
+export const getSaleById = async (id) => {
+  const [sale] = await pool.query(`
+    SELECT * FROM sales WHERE id = ?
+  `, [id])
+
+  const [items] = await pool.query(`
+    SELECT si.*, p.name AS product_name
+    FROM sale_items si
+    JOIN products p ON si.product_id = p.id
+    WHERE si.sale_id = ?
+  `, [id])
+
+  return {
+    ...sale[0],
+    items
+  }
+}

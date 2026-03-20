@@ -15,3 +15,24 @@ export const create = async (req, res) => {
     res.status(500).json({ error: error.message })
   }
 }
+
+
+// GET ALL
+export const getAll = async (req, res) => {
+  try {
+    const data = await saleService.getSales()
+    res.json(data)
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+}
+
+// GET BY ID
+export const getById = async (req, res) => {
+  try {
+    const data = await saleService.getSaleById(req.params.id)
+    res.json(data)
+  } catch (error) {
+    res.status(500).json({ error: error.message })
+  }
+}

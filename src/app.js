@@ -1,6 +1,5 @@
 import express from 'express'
-// import pool from './config/database.js'
-// import logger from './config/logger.js'
+import pool from './config/database.js'
 
 // import categoryRoutes from './routes/categoryRoutes.js'
 // import productRoutes from './routes/productRoutes.js'
@@ -11,19 +10,10 @@ import express from 'express'
 // import authRoutes from './routes/authRoutes.js'
 
 
-console.log('🔥 APP CARREGADO...')
 const app = express()
 
 app.use(express.json())
 
-// app.use((req, res, next) => {
-//   logger.info({
-//     method: req.method,
-//     url: req.url,
-//     body: req.body
-//   })
-//   next()
-// })
 
 app.get('/', (req, res) => {
   res.json({
@@ -52,16 +42,16 @@ app.get('/test-db', async (req, res) => {
 // app.use('/stores', storeRoutes)
 // app.use('/auth', authRoutes)
 
-// app.use((err, req, res, next) => {
-//   logger.error({
-//     message: err.message,
-//     stack: err.stack
-//   })
+app.use((err, req, res, next) => {
+  logger.error({
+    message: err.message,
+    stack: err.stack
+  })
 
-//   res.status(500).json({
-//     error: 'Erro interno do servidor'
-//   })
-// })
-// console.log('🔥 APP CARREGADO 2...')
+  res.status(500).json({
+    error: 'Erro interno do servidor'
+  })
+})
+console.log('🔥 APP CARREGADO 2...')
 
 export default app

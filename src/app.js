@@ -1,13 +1,14 @@
 import express from 'express'
 import pool from './config/database.js'
 
+import authRoutes from './routes/authRoutes.js'
 import categoryRoutes from './routes/categoryRoutes.js'
 // import productRoutes from './routes/productRoutes.js'
 // import stockRoutes from './routes/stockRoutes.js'
 // import saleRoutes from './routes/saleRoutes.js'
 // import configRoutes from './routes/configRoutes.js'
 // import storeRoutes from './routes/storeRoutes.js'
-// import authRoutes from './routes/authRoutes.js'
+
 
 
 const app = express()

@@ -1,5 +1,5 @@
 import express from 'express'
-import * as authController from '../controllers/authController.js'
+import * as authController from '../auth/authController.js'
 import { authMiddleware } from '../middlewares/authMiddleware.js'
 import { adminOnly } from '../middlewares/adminMiddleware.js'
 

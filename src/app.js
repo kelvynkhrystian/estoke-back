@@ -11,7 +11,7 @@ import storeRoutes from './routes/storeRoutes.js'
 import authRoutes from './routes/authRoutes.js'
 
 
-
+console.log('🔥 APP CARREGADO...')
 const app = express()
 
 app.use(express.json())
@@ -62,6 +62,6 @@ app.use((err, req, res, next) => {
     error: 'Erro interno do servidor'
   })
 })
-
+console.log('🔥 APP CARREGADO 2...')
 
 export default app

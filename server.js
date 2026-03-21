@@ -3,6 +3,8 @@ import logger from './src/config/logger.js'
 
 const PORT = process.env.PORT || 3000
 
+console.log('🔥 APP STARTANDO...')
+
 app.listen(PORT, () => {
   console.log(`Servidor rodando na porta ${PORT} 🚀`)
 })

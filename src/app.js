@@ -10,12 +10,10 @@ import configRoutes from './routes/configRoutes.js'
 import storeRoutes from './routes/storeRoutes.js'
 
 
-
 const app = express()
-
 app.use(express.json())
 
-
+// api ON
 app.get('/', (req, res) => {
   res.json({
     status: 'API ONLINE 🚀',
@@ -38,8 +36,8 @@ app.get('/test-db', async (req, res) => {
 app.use('/categories', categoryRoutes)
 app.use('/auth', authRoutes)
 app.use('/products', productRoutes)
-// app.use('/stock', stockRoutes)
-// app.use('/sales', saleRoutes)
+app.use('/stock', stockRoutes)
+app.use('/sales', saleRoutes)
 // app.use('/config', configRoutes)
 // app.use('/stores', storeRoutes)
 

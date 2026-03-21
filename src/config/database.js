@@ -1,28 +1,18 @@
 import mysql from 'mysql2/promise'
-import dotenv from 'dotenv'
-import logger from './logger.js'
 
-dotenv.config()
+// NÃO precisa dotenv na Hostinger (ela já injeta env)
+// se quiser manter local, pode deixar — não quebra
 
-let pool
+const pool = mysql.createPool({
+  host: process.env.DB_HOST,
+  user: process.env.DB_USER,
+  password: process.env.DB_PASSWORD,
+  database: process.env.DB_NAME,
+  port: Number(process.env.DB_PORT) || 3306,
 
-try {
-  pool = mysql.createPool({
-    host: process.env.DB_HOST,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME,
-    port: Number(process.env.DB_PORT) || 3306,
-
-    waitForConnections: true,
-    connectionLimit: 10,
-    queueLimit: 0
-  })
-
-  logger.info('Banco configurado com sucesso')
-
-} catch (error) {
-  logger.error('Erro ao configurar banco', error)
-}
+  waitForConnections: true,
+  connectionLimit: 10,
+  queueLimit: 0
+})
 
 export default pool

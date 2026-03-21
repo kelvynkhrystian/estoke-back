@@ -1,5 +1,5 @@
 import express from 'express'
-import pool from './config/database.js'
+// import pool from './config/database.js'
 
 import categoryRoutes from './routes/categoryRoutes.js'
 import productRoutes from './routes/productRoutes.js'

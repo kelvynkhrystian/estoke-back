@@ -37,7 +37,7 @@ app.get('/test-db', async (req, res) => {
 
 app.use('/categories', categoryRoutes)
 app.use('/auth', authRoutes)
-// app.use('/products', productRoutes)
+app.use('/products', productRoutes)
 // app.use('/stock', stockRoutes)
 // app.use('/sales', saleRoutes)
 // app.use('/config', configRoutes)

@@ -1,19 +1,11 @@
 import app from './src/app.js'
-import logger from './src/config/logger.js'
+import { testConnection } from './src/config/database.js'
 
 const PORT = process.env.PORT || 3000
 
-console.log('🔥 APP STARTANDO...')
+app.listen(PORT, async () => {
+  console.log(`🚀 Servidor rodando na porta ${PORT}`)
 
-app.listen(PORT, () => {
-  console.log(`Servidor rodando na porta ${PORT} 🚀`)
-})
-
-
-process.on('uncaughtException', (err) => {
-  logger.error('Uncaught Exception', err)
-})
-
-process.on('unhandledRejection', (err) => {
-  logger.error('Unhandled Rejection', err)
+  // 🔥 testa banco sem derrubar o app
+  await testConnection()
 })

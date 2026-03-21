@@ -2,12 +2,12 @@ import express from 'express'
 import pool from './config/database.js'
 
 import categoryRoutes from './routes/categoryRoutes.js'
-import productRoutes from './routes/productRoutes.js'
-import stockRoutes from './routes/stockRoutes.js'
-import saleRoutes from './routes/saleRoutes.js'
-import configRoutes from './routes/configRoutes.js'
-import storeRoutes from './routes/storeRoutes.js'
-import authRoutes from './routes/authRoutes.js'
+// import productRoutes from './routes/productRoutes.js'
+// import stockRoutes from './routes/stockRoutes.js'
+// import saleRoutes from './routes/saleRoutes.js'
+// import configRoutes from './routes/configRoutes.js'
+// import storeRoutes from './routes/storeRoutes.js'
+// import authRoutes from './routes/authRoutes.js'
 
 
 const app = express()
@@ -35,12 +35,12 @@ app.get('/test-db', async (req, res) => {
 
 
 app.use('/categories', categoryRoutes)
-app.use('/products', productRoutes)
-app.use('/stock', stockRoutes)
-app.use('/sales', saleRoutes)
-app.use('/config', configRoutes)
-app.use('/stores', storeRoutes)
-app.use('/auth', authRoutes)
+// app.use('/products', productRoutes)
+// app.use('/stock', stockRoutes)
+// app.use('/sales', saleRoutes)
+// app.use('/config', configRoutes)
+// app.use('/stores', storeRoutes)
+// app.use('/auth', authRoutes)
 
 app.use((err, req, res, next) => {
   logger.error({

@@ -38,8 +38,8 @@ app.use('/auth', authRoutes)
 app.use('/products', productRoutes)
 app.use('/stock', stockRoutes)
 app.use('/sales', saleRoutes)
-// app.use('/config', configRoutes)
-// app.use('/stores', storeRoutes)
+app.use('/config', configRoutes)
+app.use('/stores', storeRoutes)
 
 
 app.use((err, req, res, next) => {

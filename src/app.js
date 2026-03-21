@@ -1,5 +1,7 @@
 import express from 'express'
 import pool from './config/database.js'
+import cors from 'cors'
+
 
 import authRoutes from './routes/authRoutes.js'
 import categoryRoutes from './routes/categoryRoutes.js'
@@ -12,6 +14,12 @@ import storeRoutes from './routes/storeRoutes.js'
 
 const app = express()
 app.use(express.json())
+
+
+app.use(cors({
+  origin: ['http://localhost:5173', 'https://app.pastelariadoj.com.br' ],
+  credentials: true
+}))
 
 // api ON
 app.get('/', (req, res) => {

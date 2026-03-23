@@ -1,6 +1,8 @@
 import express from 'express'
 import pool from './config/database.js'
 import cors from 'cors'
+import swaggerUi from "swagger-ui-express";
+import { swaggerSpec } from "./config/swagger.js";
 
 
 import authRoutes from './routes/authRoutes.js'
@@ -15,6 +17,8 @@ import storeRoutes from './routes/storeRoutes.js'
 const app = express()
 app.use(express.json())
 
+// testando doc automatica
+app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.use(cors({
   origin: ['http://localhost:5173', 'https://app.pastelariadoj.com.br' ],

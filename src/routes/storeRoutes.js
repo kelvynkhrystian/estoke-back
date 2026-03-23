@@ -21,6 +21,8 @@ router.use(authMiddleware)
  *   get:
  *     summary: Listar todas as lojas
  *     tags: [Stores]
+ *     security:
+ *       - bearerAuth: []
  *     responses:
  *       200:
  *         description: Lista de lojas
@@ -41,6 +43,8 @@ router.get('/', storeController.getAll)
  *   post:
  *     summary: Criar nova loja (admin)
  *     tags: [Stores]
+ *     security:
+ *       - bearerAuth: []
  *     requestBody:
  *       required: true
  *       content:
@@ -56,5 +60,65 @@ router.get('/', storeController.getAll)
  *         $ref: '#/components/responses/ForbiddenError'
  */
 router.post('/', adminOnly, storeController.create)
+
+/**
+ * @swagger
+ * /stores/{id}:
+ *   put:
+ *     summary: Atualizar loja (admin)
+ *     tags: [Stores]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         description: ID da loja
+ *         schema:
+ *           type: integer
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             $ref: '#/components/schemas/StoreInput'
+ *     responses:
+ *       200:
+ *         description: Loja atualizada com sucesso
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         $ref: '#/components/responses/ForbiddenError'
+ *       404:
+ *         description: Loja não encontrada
+ */
+router.put('/:id', adminOnly, storeController.update)
+
+/**
+ * @swagger
+ * /stores/{id}:
+ *   delete:
+ *     summary: Remover loja (admin)
+ *     tags: [Stores]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         description: ID da loja
+ *         schema:
+ *           type: integer
+ *     responses:
+ *       200:
+ *         description: Loja removida com sucesso
+ *       401:
+ *         $ref: '#/components/responses/UnauthorizedError'
+ *       403:
+ *         $ref: '#/components/responses/ForbiddenError'
+ *       404:
+ *         description: Loja não encontrada
+ */
+router.delete('/:id', adminOnly, storeController.remove)
 
 export default router

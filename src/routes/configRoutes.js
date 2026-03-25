@@ -6,7 +6,6 @@ import { adminOnly } from '../middlewares/adminMiddleware.js'
 const router = express.Router()
 
 // 🔐 todas as rotas exigem admin
-router.use(authMiddleware, adminOnly)
 
 /**
  * @swagger
@@ -33,7 +32,7 @@ router.use(authMiddleware, adminOnly)
  *       403:
  *         $ref: '#/components/responses/ForbiddenError'
  */
-router.get('/', configController.get)
+router.get("/", configController.get);
 
 /**
  * @swagger
@@ -55,6 +54,6 @@ router.get('/', configController.get)
  *       403:
  *         $ref: '#/components/responses/ForbiddenError'
  */
-router.put('/', configController.update)
+router.put("/", authMiddleware, adminOnly, configController.update);
 
 export default router

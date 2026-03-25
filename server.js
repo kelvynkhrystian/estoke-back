@@ -1,21 +1,19 @@
-import express from "express"; // 👈 faltava isso
-import app from './src/app.js'
-import { testConnection } from './src/config/database.js'
+import express from "express";
 import path from "path";
-
 import { fileURLToPath } from "url";
+
+import app from "./src/app.js";
+import { testConnection } from "./src/config/database.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-app.use("/uploads", express.static(path.join(__dirname, "uploads")));
+const PORT = process.env.PORT || 3000;
 
-const PORT = process.env.PORT || 3000
-
+// 🔥 SERVIR ARQUIVOS ESTÁTICOS (ANTES DO LISTEN)
+app.use("/uploads", express.static(path.join(__dirname, "src/uploads")));
 
 app.listen(PORT, async () => {
-  console.log(`🚀 Servidor rodando na porta ${PORT}`)
-
-  // 🔥 testa banco sem derrubar o app
-  await testConnection()
-})
+  console.log(`🚀 Servidor rodando na porta ${PORT}`);
+  await testConnection();
+});

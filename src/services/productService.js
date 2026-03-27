@@ -31,15 +31,16 @@ export const createProduct = async (data) => {
     unit,
     cost_price,
     sale_price,
+    resale_price, // 🔥 NOVO CAMPO
     min_stock,
     category_id
   } = data
 
   const [result] = await pool.query(`
     INSERT INTO products 
-    (name, sku, unit, cost_price, sale_price, min_stock, category_id)
-    VALUES (?, ?, ?, ?, ?, ?, ?)
-  `, [name, sku, unit, cost_price, sale_price, min_stock, category_id])
+    (name, sku, unit, cost_price, sale_price, resale_price, min_stock, category_id)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+  `, [name, sku, unit, cost_price, sale_price, resale_price || 0, min_stock, category_id])
 
   return { id: result.insertId, ...data }
 }
@@ -52,6 +53,7 @@ export const updateProduct = async (id, data) => {
     unit,
     cost_price,
     sale_price,
+    resale_price, // 🔥 NOVO CAMPO
     min_stock,
     category_id
   } = data
@@ -63,14 +65,14 @@ export const updateProduct = async (id, data) => {
       unit = ?,
       cost_price = ?,
       sale_price = ?,
+      resale_price = ?, -- 🔥 NOVO CAMPO
       min_stock = ?,
       category_id = ?
     WHERE id = ?
-  `, [name, sku, unit, cost_price, sale_price, min_stock, category_id, id])
+  `, [name, sku, unit, cost_price, sale_price, resale_price, min_stock, category_id, id])
 
   return { id, ...data }
 }
-
 // DELETE
 export const deleteProduct = async (id) => {
   await pool.query('DELETE FROM products WHERE id = ?', [id])

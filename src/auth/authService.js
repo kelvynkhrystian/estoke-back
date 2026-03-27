@@ -182,3 +182,57 @@ export const me = async (userId) => {
 
   return rows[0]
 }
+
+export const updateEmail = async (userId, { new_email, password }) => {
+  const [users] = await pool.query(
+    'SELECT * FROM users WHERE id = ?',
+    [userId]
+  )
+
+  if (users.length === 0) {
+    throw new Error('Usuário não encontrado')
+  }
+
+  const user = users[0]
+
+  const isMatch = await bcrypt.compare(password, user.password_hash)
+
+  if (!isMatch) {
+    throw new Error('Senha inválida')
+  }
+
+  await pool.query(
+    'UPDATE users SET email = ? WHERE id = ?',
+    [new_email, userId]
+  )
+
+  return { email: new_email }
+}
+
+export const updatePassword = async (userId, { current_password, new_password }) => {
+  const [users] = await pool.query(
+    'SELECT * FROM users WHERE id = ?',
+    [userId]
+  )
+
+  if (users.length === 0) {
+    throw new Error('Usuário não encontrado')
+  }
+
+  const user = users[0]
+
+  const isMatch = await bcrypt.compare(current_password, user.password_hash)
+
+  if (!isMatch) {
+    throw new Error('Senha atual inválida')
+  }
+
+  const newHash = await bcrypt.hash(new_password, 10)
+
+  await pool.query(
+    'UPDATE users SET password_hash = ? WHERE id = ?',
+    [newHash, userId]
+  )
+
+  return { message: 'Senha atualizada com sucesso' }
+}

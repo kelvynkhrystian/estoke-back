@@ -49,3 +49,22 @@ export const me = async (req, res) => {
     res.status(404).json({ error: error.message })
   }
 }
+
+
+export const updateEmail = async (req, res) => {
+  try {
+    const data = await authService.updateEmail(req.user.id, req.body)
+    res.json(data)
+  } catch (e) {
+    res.status(400).json({ message: e.message })
+  }
+}
+
+export const updatePassword = async (req, res) => {
+  try {
+    const data = await authService.updatePassword(req.user.id, req.body)
+    res.json(data)
+  } catch (e) {
+    res.status(400).json({ message: e.message })
+  }
+}

@@ -161,4 +161,7 @@ router.post('/logout', authController.logout)
 
 router.get("/me", authMiddleware, me)
 
+router.put('/update-email', authMiddleware, authController.updateEmail)
+router.put('/update-password', authMiddleware, authController.updatePassword)
+
 export default router

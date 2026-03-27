@@ -2,6 +2,7 @@ import express from 'express'
 import * as configController from '../controllers/configController.js'
 import { authMiddleware } from '../middlewares/authMiddleware.js'
 import { adminOnly } from '../middlewares/adminMiddleware.js'
+import upload from "../middlewares/upload.js";
 
 const router = express.Router()
 
@@ -54,6 +55,8 @@ router.get("/", configController.get);
  *       403:
  *         $ref: '#/components/responses/ForbiddenError'
  */
-router.put("/", authMiddleware, adminOnly, configController.update);
+router.put("/", authMiddleware, adminOnly, upload.single("logo"), configController.update);
+
+
 
 export default router

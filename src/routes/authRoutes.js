@@ -2,6 +2,7 @@ import express from 'express'
 import * as authController from '../auth/authController.js'
 import { authMiddleware } from '../middlewares/authMiddleware.js'
 import { adminOnly } from '../middlewares/adminMiddleware.js'
+import { me } from "../auth/authController.js"
 
 const router = express.Router()
 
@@ -154,5 +155,10 @@ router.post('/refresh', authController.refresh)
  *         description: Erro ao fazer logout
  */
 router.post('/logout', authController.logout)
+
+
+
+
+router.get("/me", authMiddleware, me)
 
 export default router

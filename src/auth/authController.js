@@ -39,3 +39,13 @@ export const logout = async (req, res) => {
     res.status(500).json({ error: e.message })
   }
 }
+
+// pegar dados user
+export const me = async (req, res) => {
+  try {
+    const data = await authService.me(req.user.id)
+    res.json(data)
+  } catch (error) {
+    res.status(404).json({ error: error.message })
+  }
+}

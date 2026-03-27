@@ -1,51 +1,51 @@
 import pool from '../config/database.js'
+import fs from "fs";
+import path from "path";
 
-// GET CONFIG
+// 🔹 GET CONFIG
 export const getConfig = async () => {
-  const [rows] = await pool.query('SELECT * FROM app_config LIMIT 1')
-  return rows[0] || null
+  const [rows] = await pool.query("SELECT * FROM app_config LIMIT 1")
+  return rows[0] || {}
 }
 
-// UPDATE CONFIG
-export const updateConfig = async (data) => {
-  const {
-    app_name,
-    slogan,
-    theme,
-    logo_url,
-    primary_color,
-    secondary_color
-  } = data
+// 🔹 UPDATE CONFIG
+export const updateConfig = async (data, file) => {
+  // pega config atual
+  const [rows] = await pool.query("SELECT * FROM app_config LIMIT 1");
+  const current = rows[0];
 
-  // verifica se já existe
-  const [rows] = await pool.query('SELECT id FROM app_config LIMIT 1')
+  let logoUrl = current.logo_url;
 
-  if (rows.length === 0) {
-    await pool.query(`
-      INSERT INTO app_config 
-      (app_name, slogan, theme, logo_url, primary_color, secondary_color)
-      VALUES (?, ?, ?, ?, ?, ?)
-    `, [app_name, slogan, theme, logo_url, primary_color, secondary_color])
-  } else {
-    await pool.query(`
-      UPDATE app_config SET
-        app_name = ?,
-        slogan = ?,
-        theme = ?,
-        logo_url = ?,
-        primary_color = ?,
-        secondary_color = ?
-      WHERE id = ?
-    `, [
-      app_name,
-      slogan,
-      theme,
-      logo_url,
-      primary_color,
-      secondary_color,
-      rows[0].id
-    ])
+  // se veio nova imagem
+  if (file) {
+    // 🔥 APAGA A ANTIGA
+    if (current.logo_url) {
+      const oldPath = path.join(process.cwd(), current.logo_url);
+
+      if (fs.existsSync(oldPath)) {
+        fs.unlinkSync(oldPath);
+      }
+    }
+
+    // nova logo
+    logoUrl = `/uploads/logos/${file.filename}`;
   }
 
-  return { message: 'Config atualizada' }
-}
+  // atualiza banco
+  await pool.query(
+    `UPDATE app_config 
+     SET app_name = ?, slogan = ?, theme = ?, logo_url = ?
+     WHERE id = 1`,
+    [
+      data.app_name,
+      data.slogan,
+      data.theme || "dark",
+      logoUrl,
+    ]
+  );
+
+  return {
+    ...data,
+    logo_url: logoUrl,
+  };
+};

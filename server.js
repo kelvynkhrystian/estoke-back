@@ -11,7 +11,7 @@ const __dirname = path.dirname(__filename);
 const PORT = process.env.PORT || 3000;
 
 // 🔥 SERVIR ARQUIVOS ESTÁTICOS (ANTES DO LISTEN)
-app.use("/uploads", express.static(path.join(__dirname, "src/uploads")));
+app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
 app.listen(PORT, async () => {
   console.log(`🚀 Servidor rodando na porta ${PORT}`);

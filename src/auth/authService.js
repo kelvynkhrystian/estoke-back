@@ -166,3 +166,19 @@ export const register = async ({
     store_id
   }
 }
+
+// pegar dados user
+export const me = async (userId) => {
+  const [rows] = await pool.query(
+    `SELECT id, name, email, role, store_id 
+     FROM users 
+     WHERE id = ? AND is_active = 1`,
+    [userId]
+  )
+
+  if (rows.length === 0) {
+    throw new Error("Usuário não encontrado")
+  }
+
+  return rows[0]
+}

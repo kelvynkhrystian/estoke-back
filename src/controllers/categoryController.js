@@ -13,7 +13,7 @@ export const getAll = async (req, res) => {
 // GET BY ID
 export const getById = async (req, res) => {
   try {
-    const category = await categoryService.getById(req.params.id)
+    const category = await categoryService.getCategoryById(req.params.id)
 
     if (!category) {
       return res.status(404).json({ error: 'Categoria não encontrada' })
@@ -28,15 +28,15 @@ export const getById = async (req, res) => {
 // CREATE
 export const create = async (req, res) => {
   try {
-    const { name } = req.body
-
-    if (!name) {
+    if (!req.body.name) {
       return res.status(400).json({ error: 'Nome obrigatório' })
     }
 
-    const data = await categoryService.createCategory(name)
+    const data = await categoryService.createCategory(req.body)
+
     res.status(201).json(data)
   } catch (error) {
+    console.error(error) // 🔥 IMPORTANTE
     res.status(500).json({ error: error.message })
   }
 }
@@ -44,16 +44,17 @@ export const create = async (req, res) => {
 // UPDATE
 export const update = async (req, res) => {
   try {
-    const { name } = req.body
     const { id } = req.params
 
-    if (!name) {
+    if (!req.body.name) {
       return res.status(400).json({ error: 'Nome obrigatório' })
     }
 
-    const data = await categoryService.updateCategory(id, name)
+    const data = await categoryService.updateCategory(id, req.body)
+
     res.json(data)
   } catch (error) {
+    console.error(error) // 🔥 IMPORTANTE
     res.status(500).json({ error: error.message })
   }
 }

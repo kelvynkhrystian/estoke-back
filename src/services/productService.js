@@ -1,30 +1,58 @@
 import pool from '../config/database.js'
 
 // ============================
-// LISTAR COM JOIN
+// LISTAR TODOS (COM INSUMOS)
 // ============================
 export const getAllProducts = async () => {
-  const [rows] = await pool.query(`
-    SELECT 
-      p.*, 
-      c.name AS category_name
+  const [products] = await pool.query(`
+    SELECT p.*, c.name AS category_name
     FROM products p
     LEFT JOIN categories c ON p.category_id = c.id
   `)
 
-  return rows
+  for (const product of products) {
+    const [insumos] = await pool.query(`
+      SELECT 
+        pi.insumo_id,
+        pi.quantity,
+        i.name,
+        i.unit
+      FROM product_insumos pi
+      JOIN insumos i ON i.id = pi.insumo_id
+      WHERE pi.product_id = ?
+    `, [product.id])
+
+    product.insumos = insumos
+  }
+
+  return products
 }
 
 // ============================
-// BUSCAR POR ID
+// BUSCAR POR ID (COM INSUMOS)
 // ============================
 export const getProductById = async (id) => {
-  const [rows] = await pool.query(
+  const [[product]] = await pool.query(
     'SELECT * FROM products WHERE id = ?',
     [id]
   )
 
-  return rows[0]
+  if (!product) return null
+
+  const [insumos] = await pool.query(`
+    SELECT 
+      pi.insumo_id,
+      pi.quantity,
+      i.name,
+      i.unit
+    FROM product_insumos pi
+    JOIN insumos i ON i.id = pi.insumo_id
+    WHERE pi.product_id = ?
+  `, [id])
+
+  product.insumos = insumos
+
+  return product
 }
 
 // ============================
@@ -40,21 +68,16 @@ export const createProduct = async (data) => {
     resale_price,
     min_stock,
     category_id,
-    is_active
+    is_active,
+    insumos = []
   } = data
 
   const [result] = await pool.query(`
     INSERT INTO products 
     (
-      name,
-      sku,
-      unit,
-      cost_price,
-      sale_price,
-      resale_price,
-      min_stock,
-      category_id,
-      is_active
+      name, sku, unit,
+      cost_price, sale_price, resale_price,
+      min_stock, category_id, is_active
     )
     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
   `, [
@@ -66,10 +89,22 @@ export const createProduct = async (data) => {
     resale_price || 0,
     min_stock || 0,
     category_id,
-    is_active ?? 1 // 🔥 garante valor
+    is_active ?? 1
   ])
 
-  return { id: result.insertId, ...data }
+  const productId = result.insertId
+
+  // 🔥 SALVAR INSUMOS
+  if (insumos.length > 0) {
+    for (const item of insumos) {
+      await pool.query(`
+        INSERT INTO product_insumos (product_id, insumo_id, quantity)
+        VALUES (?, ?, ?)
+      `, [productId, item.insumo_id, item.quantity])
+    }
+  }
+
+  return { id: productId, ...data }
 }
 
 // ============================
@@ -85,7 +120,8 @@ export const updateProduct = async (id, data) => {
     resale_price,
     min_stock,
     category_id,
-    is_active
+    is_active,
+    insumos = []
   } = data
 
   await pool.query(`
@@ -112,6 +148,22 @@ export const updateProduct = async (id, data) => {
     is_active ?? 1,
     id
   ])
+
+  // 🔥 REMOVE ANTIGOS
+  await pool.query(
+    'DELETE FROM product_insumos WHERE product_id = ?',
+    [id]
+  )
+
+  // 🔥 INSERE NOVOS
+  if (insumos.length > 0) {
+    for (const item of insumos) {
+      await pool.query(`
+        INSERT INTO product_insumos (product_id, insumo_id, quantity)
+        VALUES (?, ?, ?)
+      `, [id, item.insumo_id, item.quantity])
+    }
+  }
 
   return { id, ...data }
 }

@@ -12,6 +12,7 @@ import stockRoutes from './routes/stockRoutes.js'
 import saleRoutes from './routes/saleRoutes.js'
 import configRoutes from './routes/configRoutes.js'
 import storeRoutes from './routes/storeRoutes.js'
+import insumoRoutes from './routes/insumoRoutes.js'
 
 
 const app = express()
@@ -52,6 +53,7 @@ app.use('/stock', stockRoutes)
 app.use('/sales', saleRoutes)
 app.use('/config', configRoutes)
 app.use('/stores', storeRoutes)
+app.use('/insumos', insumoRoutes)
 
 
 app.use((err, req, res, next) => {

@@ -79,17 +79,17 @@ export const remove = async (req, res) => {
   try {
     const { id } = req.params
 
-    // Chamando o service que executa a exclusão real
-    const data = await storeService.hardDeleteStore(id)
+    // Ajuste o nome aqui para 'removeStore' (que é o que está no seu service)
+    const data = await storeService.removeStore(id)
 
     if (!data) {
       return res.status(404).json({ error: 'Loja não encontrada' })
     }
 
-    // Mensagem atualizada para refletir a realidade
     res.json({ message: 'Loja removida permanentemente com sucesso' })
   } catch (error) {
-    console.error('Erro ao excluir loja:', error)
+    // Esse console.log aqui é seu melhor amigo para debugar o erro 500
+    console.error('Erro ao excluir loja no Controller:', error)
     res.status(500).json({ error: 'Erro ao excluir loja' })
   }
 }

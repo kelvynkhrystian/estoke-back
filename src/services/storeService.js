@@ -54,18 +54,28 @@ export const updateStore = async (id, { name, is_active }) => {
   return { id, name, is_active }
 }
 
-// 🗑️ REMOVER PERMANENTEMENTE (HARD DELETE)
 export const removeStore = async (id) => {
-  // Trocamos o UPDATE por DELETE FROM
-  const [result] = await pool.query(
-    'DELETE FROM stores WHERE id = ?',
-    [id]
-  )
+  const connection = await pool.getConnection(); // Pegamos uma conexão para usar transação
+  
+  try {
+    await connection.beginTransaction();
 
-  // O affectedRows continua sendo 1 se deletou ou 0 se não achou o ID
-  if (result.affectedRows === 0) {
-    return null
+    // 1. Deletar ou desvincular dependências primeiro
+    // Exemplo: deletando usuários vinculados a essa loja
+    await connection.query('DELETE FROM users WHERE store_id = ?', [id]);
+    
+    // 2. Agora sim, deleta a loja
+    const [result] = await connection.query('DELETE FROM stores WHERE id = ?', [id]);
+
+    await connection.commit();
+
+    if (result.affectedRows === 0) return null;
+    return { id };
+
+  } catch (error) {
+    await connection.rollback();
+    throw error; // Lança o erro para o Controller pegar o 500
+  } finally {
+    connection.release();
   }
-
-  return { id }
 }

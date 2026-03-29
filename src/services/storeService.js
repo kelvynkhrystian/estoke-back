@@ -1,27 +1,49 @@
 import pool from '../config/database.js'
 
-// LISTAR (somente ativos)
+// 🔍 LISTAR LOJAS (ATIVAS + CONTAGEM DE USUÁRIOS)
 export const getStores = async () => {
-  const [rows] = await pool.query(
-    'SELECT * FROM stores WHERE is_active = 1'
-  )
+  const [rows] = await pool.query(`
+    SELECT 
+      s.id,
+      s.name,
+      s.is_active,
+      COUNT(u.id) AS total_users
+    FROM stores s
+    LEFT JOIN users u ON u.store_id = s.id AND u.is_active = 1
+    WHERE s.is_active = 1
+    GROUP BY s.id
+    ORDER BY s.id ASC
+  `)
+
   return rows
 }
 
-// CRIAR
+// 🔍 BUSCAR POR ID
+export const getStoreById = async (id) => {
+  const [rows] = await pool.query(
+    'SELECT * FROM stores WHERE id = ? AND is_active = 1',
+    [id]
+  )
+
+  return rows[0] || null
+}
+
+// ➕ CRIAR LOJA
 export const createStore = async (name) => {
   const [result] = await pool.query(
-    'INSERT INTO stores (name) VALUES (?)',
+    'INSERT INTO stores (name, is_active) VALUES (?, 1)',
     [name]
   )
 
   return {
     id: result.insertId,
-    name
+    name,
+    is_active: 1,
+    total_users: 0
   }
 }
 
-// ATUALIZAR
+// ✏️ ATUALIZAR LOJA
 export const updateStore = async (id, name) => {
   const [result] = await pool.query(
     'UPDATE stores SET name = ? WHERE id = ? AND is_active = 1',
@@ -38,9 +60,12 @@ export const updateStore = async (id, name) => {
   }
 }
 
-// REMOVER (SOFT DELETE 🔥)
+// 🗑️ REMOVER (SOFT DELETE)
 export const removeStore = async (id) => {
-  const [result] = await pool.query('DELETE FROM stores WHERE id = ?', [id])
+  const [result] = await pool.query(
+    'UPDATE stores SET is_active = 0 WHERE id = ?',
+    [id]
+  )
 
   if (result.affectedRows === 0) {
     return null

@@ -10,7 +10,6 @@ export const getStores = async () => {
       COUNT(u.id) AS total_users
     FROM stores s
     LEFT JOIN users u ON u.store_id = s.id AND u.is_active = 1
-    WHERE s.is_active = 1
     GROUP BY s.id
     ORDER BY s.id ASC
   `)
@@ -29,35 +28,30 @@ export const getStoreById = async (id) => {
 }
 
 // ➕ CRIAR LOJA
-export const createStore = async (name) => {
+export const createStore = async ({ name, is_active }) => {
   const [result] = await pool.query(
-    'INSERT INTO stores (name, is_active) VALUES (?, 1)',
-    [name]
+    'INSERT INTO stores (name, is_active) VALUES (?, ?)',
+    [name, is_active]
   )
 
   return {
     id: result.insertId,
     name,
-    is_active: 1,
+    is_active,
     total_users: 0
   }
 }
 
 // ✏️ ATUALIZAR LOJA
-export const updateStore = async (id, name) => {
+export const updateStore = async (id, { name, is_active }) => {
   const [result] = await pool.query(
-    'UPDATE stores SET name = ? WHERE id = ? AND is_active = 1',
-    [name, id]
+    'UPDATE stores SET name = ?, is_active = ? WHERE id = ?',
+    [name, is_active, id]
   )
 
-  if (result.affectedRows === 0) {
-    return null
-  }
+  if (result.affectedRows === 0) return null
 
-  return {
-    id,
-    name
-  }
+  return { id, name, is_active }
 }
 
 // 🗑️ REMOVER (SOFT DELETE)

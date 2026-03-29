@@ -32,18 +32,20 @@ export const getById = async (req, res) => {
 // ➕ CRIAR
 export const create = async (req, res) => {
   try {
-    const { name } = req.body
+    const { name, is_active } = req.body
 
-    if (!name || name.trim() === '') {
+    if (!name) {
       return res.status(400).json({ error: 'Nome obrigatório' })
     }
 
-    const data = await storeService.createStore(name.trim())
+    const data = await storeService.createStore({
+      name,
+      is_active: is_active ?? 1
+    })
 
     res.status(201).json(data)
   } catch (error) {
-    console.error('Erro ao criar loja:', error)
-    res.status(500).json({ error: 'Erro ao criar loja' })
+    res.status(500).json({ error: error.message })
   }
 }
 
@@ -51,22 +53,24 @@ export const create = async (req, res) => {
 export const update = async (req, res) => {
   try {
     const { id } = req.params
-    const { name } = req.body
+    const { name, is_active } = req.body
 
-    if (!name || name.trim() === '') {
+    if (!name) {
       return res.status(400).json({ error: 'Nome obrigatório' })
     }
 
-    const data = await storeService.updateStore(id, name.trim())
+    const data = await storeService.updateStore(id, {
+      name,
+      is_active
+    })
 
     if (!data) {
-      return res.status(404).json({ error: 'Loja não encontrada ou inativa' })
+      return res.status(404).json({ error: 'Loja não encontrada' })
     }
 
     res.json(data)
   } catch (error) {
-    console.error('Erro ao atualizar loja:', error)
-    res.status(500).json({ error: 'Erro ao atualizar loja' })
+    res.status(500).json({ error: error.message })
   }
 }
 

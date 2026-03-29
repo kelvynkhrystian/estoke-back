@@ -171,11 +171,41 @@ export const updateProduct = async (id, data) => {
 // ============================
 // DELETE
 // ============================
-export const deleteProduct = async (id) => {
-  await pool.query(
-    'DELETE FROM products WHERE id = ?',
-    [id]
-  )
+// export const deleteProduct = async (id) => {
+//   await pool.query(
+//     'DELETE FROM products WHERE id = ?',
+//     [id]
+//   )
 
-  return { message: 'Produto deletado' }
+//   return { message: 'Produto deletado' }
+// }
+
+export const deleteProduct = async (id) => {
+  const conn = await pool.getConnection()
+
+  try {
+    await conn.beginTransaction()
+
+    // 🧹 1. remove do estoque
+    await conn.query(
+      'DELETE FROM stock WHERE item_id = ? AND item_type = "PRODUCT"',
+      [id]
+    )
+
+    // 🗑️ 2. remove produto
+    await conn.query(
+      'DELETE FROM products WHERE id = ?',
+      [id]
+    )
+
+    await conn.commit()
+
+    return { message: 'Produto deletado com estoque' }
+
+  } catch (error) {
+    await conn.rollback()
+    throw error
+  } finally {
+    conn.release()
+  }
 }

@@ -4,40 +4,50 @@ import * as stockService from '../services/stockService.js'
 export const getAll = async (req, res) => {
   try {
     const { store_id } = req.user
-    const data = await stockService.getStock(store_id)
+    const { type } = req.query
+
+    const data = await stockService.getStock(store_id, type)
+
     res.json(data)
   } catch (error) {
+    console.error(error)
     res.status(500).json({ error: error.message })
   }
 }
 
-// LISTAR MOVIMENTAÇÕES
+// LISTAR MOVIMENTOS
 export const getMovements = async (req, res) => {
   try {
     const { store_id } = req.user
-    const data = await stockService.getMovements(store_id)
+    const { type } = req.query
+
+    const data = await stockService.getMovements(store_id, type)
     res.json(data)
   } catch (error) {
     res.status(500).json({ error: error.message })
   }
 }
 
-// MOVIMENTAR
+// MOVIMENTAÇÃO
 export const moviment = async (req, res) => {
   try {
-    const { product_id, quantity, type } = req.body
+    const { item_id, quantity, type, reason, notes, item_type } = req.body
     const { store_id, id: created_by } = req.user
 
-    if (!product_id || !quantity || !type) {
+    if (!item_id || !quantity || !type || !item_type) {
       return res.status(400).json({ error: 'Dados inválidos' })
     }
 
     const data = await stockService.movimentStock({
-      product_id,
+      item_id,
       quantity,
       type,
       store_id,
-      created_by
+      created_by,
+      reason,
+      notes,
+      item_type,
+      reference_type: 'MANUAL'
     })
 
     res.json(data)

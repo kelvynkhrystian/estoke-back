@@ -74,20 +74,22 @@ export const update = async (req, res) => {
   }
 }
 
-// 🗑️ REMOVER (SOFT DELETE)
+// 🗑️ REMOVER PERMANENTEMENTE (HARD DELETE)
 export const remove = async (req, res) => {
   try {
     const { id } = req.params
 
-    const data = await storeService.removeStore(id)
+    // Chamando o service que executa a exclusão real
+    const data = await storeService.hardDeleteStore(id)
 
     if (!data) {
       return res.status(404).json({ error: 'Loja não encontrada' })
     }
 
-    res.json({ message: 'Loja desativada com sucesso' })
+    // Mensagem atualizada para refletir a realidade
+    res.json({ message: 'Loja removida permanentemente com sucesso' })
   } catch (error) {
-    console.error('Erro ao remover loja:', error)
-    res.status(500).json({ error: 'Erro ao remover loja' })
+    console.error('Erro ao excluir loja:', error)
+    res.status(500).json({ error: 'Erro ao excluir loja' })
   }
 }

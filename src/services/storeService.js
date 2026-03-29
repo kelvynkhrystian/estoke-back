@@ -54,13 +54,15 @@ export const updateStore = async (id, { name, is_active }) => {
   return { id, name, is_active }
 }
 
-// 🗑️ REMOVER (SOFT DELETE)
+// 🗑️ REMOVER PERMANENTEMENTE (HARD DELETE)
 export const removeStore = async (id) => {
+  // Trocamos o UPDATE por DELETE FROM
   const [result] = await pool.query(
-    'UPDATE stores SET is_active = 0 WHERE id = ?',
+    'DELETE FROM stores WHERE id = ?',
     [id]
   )
 
+  // O affectedRows continua sendo 1 se deletou ou 0 se não achou o ID
   if (result.affectedRows === 0) {
     return null
   }

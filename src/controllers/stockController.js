@@ -1,16 +1,34 @@
 import * as stockService from '../services/stockService.js'
 
 // LISTAR ESTOQUE
+// export const getAll = async (req, res) => {
+//   try {
+//     const { store_id } = req.user
+//     const { type } = req.query
+
+//     const data = await stockService.getStock(store_id, type)
+
+//     res.json(data)
+//   } catch (error) {
+//     console.error(error)
+//     res.status(500).json({ error: error.message })
+//   }
+// }
+
 export const getAll = async (req, res) => {
   try {
-    const { store_id } = req.user
-    const { type } = req.query
+    const { store_id, role } = req.user
+    const { type, store_id: storeIdQuery } = req.query
 
-    const data = await stockService.getStock(store_id, type)
+    const data = await stockService.getStock({
+      user_store_id: store_id,
+      role,
+      store_id: storeIdQuery
+    }, type)
 
     res.json(data)
   } catch (error) {
-    console.error(error)
+    console.error("🔥 ERRO GET STOCK:", error)
     res.status(500).json({ error: error.message })
   }
 }

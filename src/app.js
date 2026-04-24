@@ -3,6 +3,7 @@ import pool from './config/database.js';
 import cors from 'cors';
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './config/swagger.js';
+import logger from './utils/logger.js';
 
 import authRoutes from './routes/authRoutes.js';
 import categoryRoutes from './routes/categoryRoutes.js';
@@ -54,7 +55,7 @@ app.use('/config', configRoutes);
 app.use('/stores', storeRoutes);
 app.use('/insumos', insumoRoutes);
 
-app.use((err, req, res, next) => {
+app.use((err, req, res) => {
   logger.error({
     message: err.message,
     stack: err.stack,

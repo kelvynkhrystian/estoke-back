@@ -1,19 +1,19 @@
-import multer from "multer";
-import path from "path";
-import fs from "fs";
+import multer from 'multer';
+import path from 'path';
+import fs from 'fs';
 
-const uploadDir = "uploads/logos";
+const uploadDir = 'uploads/logos';
 
 // garante pasta
 fs.mkdirSync(uploadDir, { recursive: true });
 
-const allowedTypes = ["image/png", "image/jpeg", "image/jpg", "image/webp"];
+const allowedTypes = ['image/png', 'image/jpeg', 'image/jpg', 'image/webp'];
 
 const fileFilter = (req, file, cb) => {
   if (allowedTypes.includes(file.mimetype)) {
     cb(null, true);
   } else {
-    cb(new Error("Arquivo inválido. Apenas imagens são permitidas."));
+    cb(new Error('Arquivo inválido. Apenas imagens são permitidas.'));
   }
 };
 

@@ -1,11 +1,11 @@
-import express from 'express'
-import * as productController from '../controllers/productController.js'
-import { authMiddleware } from '../middlewares/authMiddleware.js'
-import { adminOnly } from '../middlewares/adminMiddleware.js'
+import express from 'express';
+import * as productController from '../controllers/productController.js';
+import { authMiddleware } from '../middlewares/authMiddleware.js';
+import { adminOnly } from '../middlewares/adminMiddleware.js';
 
-const router = express.Router()
+const router = express.Router();
 
-router.use(authMiddleware)
+router.use(authMiddleware);
 
 /**
  * @swagger
@@ -30,7 +30,7 @@ router.use(authMiddleware)
  *               items:
  *                 $ref: '#/components/schemas/Product'
  */
-router.get('/', productController.getAll)
+router.get('/', productController.getAll);
 
 /**
  * @swagger
@@ -52,7 +52,7 @@ router.get('/', productController.getAll)
  *             schema:
  *               $ref: '#/components/schemas/Product'
  */
-router.get('/:id', productController.getById)
+router.get('/:id', productController.getById);
 
 /**
  * @swagger
@@ -70,7 +70,7 @@ router.get('/:id', productController.getById)
  *       201:
  *         description: Produto criado
  */
-router.post('/', adminOnly, productController.create)
+router.post('/', adminOnly, productController.create);
 
 /**
  * @swagger
@@ -94,7 +94,7 @@ router.post('/', adminOnly, productController.create)
  *       200:
  *         description: Produto atualizado
  */
-router.put('/:id', adminOnly, productController.update)
+router.put('/:id', adminOnly, productController.update);
 
 /**
  * @swagger
@@ -112,6 +112,6 @@ router.put('/:id', adminOnly, productController.update)
  *       200:
  *         description: Produto removido
  */
-router.delete('/:id', adminOnly, productController.remove)
+router.delete('/:id', adminOnly, productController.remove);
 
-export default router
+export default router;

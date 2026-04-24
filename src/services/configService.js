@@ -1,17 +1,17 @@
-import pool from '../config/database.js'
-import fs from "fs";
-import path from "path";
+import pool from '../config/database.js';
+import fs from 'fs';
+import path from 'path';
 
 // 🔹 GET CONFIG
 export const getConfig = async () => {
-  const [rows] = await pool.query("SELECT * FROM app_config LIMIT 1")
-  return rows[0] || {}
-}
+  const [rows] = await pool.query('SELECT * FROM app_config LIMIT 1');
+  return rows[0] || {};
+};
 
 // 🔹 UPDATE CONFIG
 export const updateConfig = async (data, file) => {
   // pega config atual
-  const [rows] = await pool.query("SELECT * FROM app_config LIMIT 1");
+  const [rows] = await pool.query('SELECT * FROM app_config LIMIT 1');
   const current = rows[0];
 
   let logoUrl = current.logo_url;
@@ -36,12 +36,7 @@ export const updateConfig = async (data, file) => {
     `UPDATE app_config 
      SET app_name = ?, slogan = ?, theme = ?, logo_url = ?
      WHERE id = 1`,
-    [
-      data.app_name,
-      data.slogan,
-      data.theme || "dark",
-      logoUrl,
-    ]
+    [data.app_name, data.slogan, data.theme || 'dark', logoUrl]
   );
 
   return {

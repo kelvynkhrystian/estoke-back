@@ -1,10 +1,10 @@
-import express from 'express'
-import * as saleController from '../controllers/saleController.js'
-import { authMiddleware } from '../middlewares/authMiddleware.js'
+import express from 'express';
+import * as saleController from '../controllers/saleController.js';
+import { authMiddleware } from '../middlewares/authMiddleware.js';
 
-const router = express.Router()
+const router = express.Router();
 
-router.use(authMiddleware)
+router.use(authMiddleware);
 
 /**
  * @swagger
@@ -20,7 +20,7 @@ router.use(authMiddleware)
  *     summary: Listar vendas
  *     tags: [Sales]
  */
-router.get('/', saleController.getAll)
+router.get('/', saleController.getAll);
 
 /**
  * @swagger
@@ -35,7 +35,7 @@ router.get('/', saleController.getAll)
  *         schema:
  *           type: number
  */
-router.get('/:id', saleController.getById)
+router.get('/:id', saleController.getById);
 
 /**
  * @swagger
@@ -50,6 +50,6 @@ router.get('/:id', saleController.getById)
  *           schema:
  *             $ref: '#/components/schemas/SaleInput'
  */
-router.post('/', saleController.create)
+router.post('/', saleController.create);
 
-export default router
+export default router;

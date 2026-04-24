@@ -1,12 +1,12 @@
-import express from 'express'
-import * as categoryController from '../controllers/categoryController.js'
-import { authMiddleware } from '../middlewares/authMiddleware.js'
-import { adminOnly } from '../middlewares/adminMiddleware.js'
+import express from 'express';
+import * as categoryController from '../controllers/categoryController.js';
+import { authMiddleware } from '../middlewares/authMiddleware.js';
+import { adminOnly } from '../middlewares/adminMiddleware.js';
 
-const router = express.Router()
+const router = express.Router();
 
 // 🔐 todas precisam estar logadas
-router.use(authMiddleware)
+router.use(authMiddleware);
 
 /**
  * @swagger
@@ -33,7 +33,7 @@ router.use(authMiddleware)
  *       401:
  *         $ref: '#/components/responses/UnauthorizedError'
  */
-router.get('/', categoryController.getAll)
+router.get('/', categoryController.getAll);
 
 /**
  * @swagger
@@ -60,7 +60,7 @@ router.get('/', categoryController.getAll)
  *       404:
  *         description: Categoria não encontrada
  */
-router.get('/:id', categoryController.getById)
+router.get('/:id', categoryController.getById);
 
 /**
  * @swagger
@@ -82,7 +82,7 @@ router.get('/:id', categoryController.getById)
  *       403:
  *         $ref: '#/components/responses/ForbiddenError'
  */
-router.post('/', adminOnly, categoryController.create)
+router.post('/', adminOnly, categoryController.create);
 
 /**
  * @swagger
@@ -113,7 +113,7 @@ router.post('/', adminOnly, categoryController.create)
  *       404:
  *         description: Categoria não encontrada
  */
-router.put('/:id', adminOnly, categoryController.update)
+router.put('/:id', adminOnly, categoryController.update);
 
 /**
  * @swagger
@@ -138,6 +138,6 @@ router.put('/:id', adminOnly, categoryController.update)
  *       404:
  *         description: Categoria não encontrada
  */
-router.delete('/:id', adminOnly, categoryController.remove)
+router.delete('/:id', adminOnly, categoryController.remove);
 
-export default router
+export default router;

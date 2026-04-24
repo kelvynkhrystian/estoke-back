@@ -1,10 +1,10 @@
-import express from 'express'
-import * as authController from '../auth/authController.js'
-import { authMiddleware } from '../middlewares/authMiddleware.js'
-import { adminOnly } from '../middlewares/adminMiddleware.js'
-import { me } from "../auth/authController.js"
+import express from 'express';
+import * as authController from '../auth/authController.js';
+import { authMiddleware } from '../middlewares/authMiddleware.js';
+import { adminOnly } from '../middlewares/adminMiddleware.js';
+import { me } from '../auth/authController.js';
 
-const router = express.Router()
+const router = express.Router();
 
 /**
  * @swagger
@@ -59,7 +59,7 @@ const router = express.Router()
  *       401:
  *         description: Credenciais inválidas
  */
-router.post('/login', authController.login)
+router.post('/login', authController.login);
 
 /**
  * @swagger
@@ -97,7 +97,7 @@ router.post('/login', authController.login)
  *       401:
  *         description: Token inválido ou não enviado
  */
-router.post('/register', authMiddleware, adminOnly, authController.register)
+router.post('/register', authMiddleware, adminOnly, authController.register);
 
 /**
  * @swagger
@@ -129,7 +129,7 @@ router.post('/register', authMiddleware, adminOnly, authController.register)
  *       401:
  *         description: Refresh token inválido
  */
-router.post('/refresh', authController.refresh)
+router.post('/refresh', authController.refresh);
 
 /**
  * @swagger
@@ -154,14 +154,11 @@ router.post('/refresh', authController.refresh)
  *       500:
  *         description: Erro ao fazer logout
  */
-router.post('/logout', authController.logout)
+router.post('/logout', authController.logout);
 
+router.get('/me', authMiddleware, me);
 
+router.put('/update-email', authMiddleware, authController.updateEmail);
+router.put('/update-password', authMiddleware, authController.updatePassword);
 
-
-router.get("/me", authMiddleware, me)
-
-router.put('/update-email', authMiddleware, authController.updateEmail)
-router.put('/update-password', authMiddleware, authController.updatePassword)
-
-export default router
+export default router;

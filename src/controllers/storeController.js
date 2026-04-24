@@ -1,95 +1,95 @@
-import * as storeService from '../services/storeService.js'
+import * as storeService from '../services/storeService.js';
 
 // 🔍 LISTAR TODAS
 export const getAll = async (req, res) => {
   try {
-    const data = await storeService.getStores()
-    res.json(data)
+    const data = await storeService.getStores();
+    res.json(data);
   } catch (error) {
-    console.error('Erro ao listar lojas:', error)
-    res.status(500).json({ error: 'Erro ao buscar lojas' })
+    console.error('Erro ao listar lojas:', error);
+    res.status(500).json({ error: 'Erro ao buscar lojas' });
   }
-}
+};
 
 // 🔍 BUSCAR POR ID
 export const getById = async (req, res) => {
   try {
-    const { id } = req.params
+    const { id } = req.params;
 
-    const store = await storeService.getStoreById(id)
+    const store = await storeService.getStoreById(id);
 
     if (!store) {
-      return res.status(404).json({ error: 'Loja não encontrada' })
+      return res.status(404).json({ error: 'Loja não encontrada' });
     }
 
-    res.json(store)
+    res.json(store);
   } catch (error) {
-    console.error('Erro ao buscar loja:', error)
-    res.status(500).json({ error: 'Erro ao buscar loja' })
+    console.error('Erro ao buscar loja:', error);
+    res.status(500).json({ error: 'Erro ao buscar loja' });
   }
-}
+};
 
 // ➕ CRIAR
 export const create = async (req, res) => {
   try {
-    const { name, is_active } = req.body
+    const { name, is_active } = req.body;
 
     if (!name) {
-      return res.status(400).json({ error: 'Nome obrigatório' })
+      return res.status(400).json({ error: 'Nome obrigatório' });
     }
 
     const data = await storeService.createStore({
       name,
-      is_active: is_active ?? 1
-    })
+      is_active: is_active ?? 1,
+    });
 
-    res.status(201).json(data)
+    res.status(201).json(data);
   } catch (error) {
-    res.status(500).json({ error: error.message })
+    res.status(500).json({ error: error.message });
   }
-}
+};
 
 // ✏️ ATUALIZAR
 export const update = async (req, res) => {
   try {
-    const { id } = req.params
-    const { name, is_active } = req.body
+    const { id } = req.params;
+    const { name, is_active } = req.body;
 
     if (!name) {
-      return res.status(400).json({ error: 'Nome obrigatório' })
+      return res.status(400).json({ error: 'Nome obrigatório' });
     }
 
     const data = await storeService.updateStore(id, {
       name,
-      is_active
-    })
+      is_active,
+    });
 
     if (!data) {
-      return res.status(404).json({ error: 'Loja não encontrada' })
+      return res.status(404).json({ error: 'Loja não encontrada' });
     }
 
-    res.json(data)
+    res.json(data);
   } catch (error) {
-    res.status(500).json({ error: error.message })
+    res.status(500).json({ error: error.message });
   }
-}
+};
 
 // 🗑️ REMOVER PERMANENTEMENTE (HARD DELETE)
 export const remove = async (req, res) => {
   try {
-    const { id } = req.params
+    const { id } = req.params;
 
     // Ajuste o nome aqui para 'removeStore' (que é o que está no seu service)
-    const data = await storeService.removeStore(id)
+    const data = await storeService.removeStore(id);
 
     if (!data) {
-      return res.status(404).json({ error: 'Loja não encontrada' })
+      return res.status(404).json({ error: 'Loja não encontrada' });
     }
 
-    res.json({ message: 'Loja removida permanentemente com sucesso' })
+    res.json({ message: 'Loja removida permanentemente com sucesso' });
   } catch (error) {
     // Esse console.log aqui é seu melhor amigo para debugar o erro 500
-    console.error('Erro ao excluir loja no Controller:', error)
-    res.status(500).json({ error: 'Erro ao excluir loja' })
+    console.error('Erro ao excluir loja no Controller:', error);
+    res.status(500).json({ error: 'Erro ao excluir loja' });
   }
-}
+};

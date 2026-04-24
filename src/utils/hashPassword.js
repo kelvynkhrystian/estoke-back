@@ -1,10 +1,10 @@
-import bcrypt from 'bcrypt'
+import bcrypt from 'bcrypt';
 
 const run = async () => {
-  const hash = await bcrypt.hash('admin', 10)
-  console.log(hash)
-}
+  const hash = await bcrypt.hash('admin', 10);
+  console.log(hash);
+};
 
-run()
+run();
 
 // $2b$10$DFdNFmz5iM9QJJtk/vaQeuFvBzdr/MfBmQdPszdCGatiiM.6QEGJG

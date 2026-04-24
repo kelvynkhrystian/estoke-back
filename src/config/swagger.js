@@ -1,112 +1,112 @@
-import swaggerJSDoc from "swagger-jsdoc";
+import swaggerJSDoc from 'swagger-jsdoc';
 
 const options = {
   definition: {
-    openapi: "3.0.0",
+    openapi: '3.0.0',
 
     info: {
-      title: "Estoke API",
-      version: "1.0.0",
-      description: "API de gestão de estoque (Estoke)",
+      title: 'Estoke API',
+      version: '1.0.0',
+      description: 'API de gestão de estoque (Estoke)',
       contact: {
-        name: "Kelvyn Dev",
+        name: 'Kelvyn Dev',
       },
     },
 
     servers: [
       {
-        url: "http://localhost:3000",
-        description: "Servidor Local",
+        url: 'http://localhost:3000',
+        description: 'Servidor Local',
       },
       {
-        url: "https://app.pastelariadoj.com.br",
-        description: "Produção",
+        url: 'https://app.pastelariadoj.com.br',
+        description: 'Produção',
       },
     ],
 
     tags: [
-      { name: "Auth", description: "Autenticação" },
-      { name: "Categories", description: "Categorias" },
-      { name: "Products", description: "Produtos" },
-      { name: "Stock", description: "Estoque" },
-      { name: "Sales", description: "Vendas" },
-      { name: "Config", description: "Configurações" },
-      { name: "Stores", description: "Lojas" },
+      { name: 'Auth', description: 'Autenticação' },
+      { name: 'Categories', description: 'Categorias' },
+      { name: 'Products', description: 'Produtos' },
+      { name: 'Stock', description: 'Estoque' },
+      { name: 'Sales', description: 'Vendas' },
+      { name: 'Config', description: 'Configurações' },
+      { name: 'Stores', description: 'Lojas' },
     ],
 
     components: {
       securitySchemes: {
         bearerAuth: {
-          type: "http",
-          scheme: "bearer",
-          bearerFormat: "JWT",
+          type: 'http',
+          scheme: 'bearer',
+          bearerFormat: 'JWT',
         },
       },
 
       schemas: {
         // ================= USER =================
         User: {
-          type: "object",
+          type: 'object',
           properties: {
-            id: { type: "number", example: 1 },
-            name: { type: "string", example: "Admin" },
-            role: { type: "string", example: "admin" },
-            store_id: { type: "number", example: 1 },
+            id: { type: 'number', example: 1 },
+            name: { type: 'string', example: 'Admin' },
+            role: { type: 'string', example: 'admin' },
+            store_id: { type: 'number', example: 1 },
           },
         },
 
         // ================= LOGIN REQUEST =================
         LoginRequest: {
-          type: "object",
-          required: ["email", "password"],
+          type: 'object',
+          required: ['email', 'password'],
           properties: {
-            email: { type: "string", example: "admin@gmail.com" },
-            password: { type: "string", example: "admin" },
+            email: { type: 'string', example: 'admin@gmail.com' },
+            password: { type: 'string', example: 'admin' },
           },
         },
 
         // ================= AUTH RESPONSE =================
         AuthResponse: {
-          type: "object",
+          type: 'object',
           properties: {
-            accessToken: { type: "string" },
-            refreshToken: { type: "string" },
+            accessToken: { type: 'string' },
+            refreshToken: { type: 'string' },
             user: {
-              $ref: "#/components/schemas/User",
+              $ref: '#/components/schemas/User',
             },
           },
         },
 
         // ================= REFRESH =================
         RefreshRequest: {
-          type: "object",
-          required: ["refreshToken"],
+          type: 'object',
+          required: ['refreshToken'],
           properties: {
             refreshToken: {
-              type: "string",
-              example: "seu_refresh_token",
+              type: 'string',
+              example: 'seu_refresh_token',
             },
           },
         },
 
         // ================= GENERIC MESSAGE =================
         Message: {
-          type: "object",
+          type: 'object',
           properties: {
             message: {
-              type: "string",
-              example: "Operação realizada com sucesso",
+              type: 'string',
+              example: 'Operação realizada com sucesso',
             },
           },
         },
 
         // ================= ERROR =================
         Error: {
-          type: "object",
+          type: 'object',
           properties: {
             error: {
-              type: "string",
-              example: "Erro interno do servidor",
+              type: 'string',
+              example: 'Erro interno do servidor',
             },
           },
         },
@@ -114,33 +114,33 @@ const options = {
 
       responses: {
         UnauthorizedError: {
-          description: "Token inválido ou não enviado",
+          description: 'Token inválido ou não enviado',
           content: {
-            "application/json": {
+            'application/json': {
               schema: {
-                $ref: "#/components/schemas/Error",
+                $ref: '#/components/schemas/Error',
               },
             },
           },
         },
 
         ForbiddenError: {
-          description: "Acesso negado",
+          description: 'Acesso negado',
           content: {
-            "application/json": {
+            'application/json': {
               schema: {
-                $ref: "#/components/schemas/Error",
+                $ref: '#/components/schemas/Error',
               },
             },
           },
         },
 
         InternalError: {
-          description: "Erro interno do servidor",
+          description: 'Erro interno do servidor',
           content: {
-            "application/json": {
+            'application/json': {
               schema: {
-                $ref: "#/components/schemas/Error",
+                $ref: '#/components/schemas/Error',
               },
             },
           },
@@ -157,7 +157,7 @@ const options = {
   },
 
   // 🔥 lê todos os arquivos de rota
-  apis: ["./src/routes/*.js"],
+  apis: ['./src/routes/*.js'],
 };
 
 export const swaggerSpec = swaggerJSDoc(options);

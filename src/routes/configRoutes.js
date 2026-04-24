@@ -1,10 +1,10 @@
-import express from 'express'
-import * as configController from '../controllers/configController.js'
-import { authMiddleware } from '../middlewares/authMiddleware.js'
-import { adminOnly } from '../middlewares/adminMiddleware.js'
-import upload from "../middlewares/upload.js";
+import express from 'express';
+import * as configController from '../controllers/configController.js';
+import { authMiddleware } from '../middlewares/authMiddleware.js';
+import { adminOnly } from '../middlewares/adminMiddleware.js';
+import upload from '../middlewares/upload.js';
 
-const router = express.Router()
+const router = express.Router();
 
 // 🔐 todas as rotas exigem admin
 
@@ -33,7 +33,7 @@ const router = express.Router()
  *       403:
  *         $ref: '#/components/responses/ForbiddenError'
  */
-router.get("/", configController.get);
+router.get('/', configController.get);
 
 /**
  * @swagger
@@ -55,8 +55,12 @@ router.get("/", configController.get);
  *       403:
  *         $ref: '#/components/responses/ForbiddenError'
  */
-router.put("/", authMiddleware, adminOnly, upload.single("logo"), configController.update);
+router.put(
+  '/',
+  authMiddleware,
+  adminOnly,
+  upload.single('logo'),
+  configController.update
+);
 
-
-
-export default router
+export default router;

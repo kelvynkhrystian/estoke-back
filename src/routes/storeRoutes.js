@@ -1,12 +1,12 @@
-import express from 'express'
-import * as storeController from '../controllers/storeController.js'
-import { authMiddleware } from '../middlewares/authMiddleware.js'
-import { adminOnly } from '../middlewares/adminMiddleware.js'
+import express from 'express';
+import * as storeController from '../controllers/storeController.js';
+import { authMiddleware } from '../middlewares/authMiddleware.js';
+import { adminOnly } from '../middlewares/adminMiddleware.js';
 
-const router = express.Router()
+const router = express.Router();
 
 // 🔐 todas precisam estar logadas
-router.use(authMiddleware)
+router.use(authMiddleware);
 
 /**
  * @swagger
@@ -35,7 +35,7 @@ router.use(authMiddleware)
  *       401:
  *         $ref: '#/components/responses/UnauthorizedError'
  */
-router.get('/', storeController.getAll)
+router.get('/', storeController.getAll);
 
 /**
  * @swagger
@@ -59,7 +59,7 @@ router.get('/', storeController.getAll)
  *       403:
  *         $ref: '#/components/responses/ForbiddenError'
  */
-router.post('/', adminOnly, storeController.create)
+router.post('/', adminOnly, storeController.create);
 
 /**
  * @swagger
@@ -92,7 +92,7 @@ router.post('/', adminOnly, storeController.create)
  *       404:
  *         description: Loja não encontrada
  */
-router.put('/:id', adminOnly, storeController.update)
+router.put('/:id', adminOnly, storeController.update);
 
 /**
  * @swagger
@@ -119,6 +119,6 @@ router.put('/:id', adminOnly, storeController.update)
  *       404:
  *         description: Loja não encontrada
  */
-router.delete('/:id', adminOnly, storeController.remove)
+router.delete('/:id', adminOnly, storeController.remove);
 
-export default router
+export default router;

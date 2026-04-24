@@ -1,6 +1,6 @@
-import mysql from 'mysql2/promise'
-import dotenv from 'dotenv'
-dotenv.config()
+import mysql from 'mysql2/promise';
+import dotenv from 'dotenv';
+dotenv.config();
 
 const pool = mysql.createPool({
   host: process.env.DB_HOST,
@@ -14,20 +14,20 @@ const pool = mysql.createPool({
   queueLimit: 0,
 
   enableKeepAlive: true,
-  connectTimeout: 10000
-})
+  connectTimeout: 10000,
+});
 
 // 🔥 TESTE DE CONEXÃO (NÃO QUEBRA O APP)
 export const testConnection = async () => {
   try {
-    const conn = await pool.getConnection()
-    await conn.query('SELECT 1')
-    conn.release()
+    const conn = await pool.getConnection();
+    await conn.query('SELECT 1');
+    conn.release();
 
-    console.log('✅ Banco conectado com sucesso')
+    console.log('✅ Banco conectado com sucesso');
   } catch (err) {
-    console.error('❌ ERRO AO CONECTAR NO BANCO:', err.message)
+    console.error('❌ ERRO AO CONECTAR NO BANCO:', err.message);
   }
-}
+};
 
-export default pool
+export default pool;

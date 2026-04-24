@@ -114,7 +114,7 @@ export const refresh = async (refreshToken) => {
 
     return { accessToken: newAccessToken };
   } catch (err) {
-    throw new Error('Refresh inválido');
+    throw new Error('Refresh inválido', { cause: err });
   }
 };
 

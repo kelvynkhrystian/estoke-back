@@ -1,9 +1,12 @@
 import express from 'express';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import dotenv from 'dotenv';
 
 import app from './src/app.js';
 import { testConnection } from './src/config/database.js';
+
+dotenv.config();
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);

@@ -6,6 +6,7 @@ import { swaggerSpec } from './config/swagger.js';
 import logger from './utils/logger.js';
 
 import authRoutes from './routes/authRoutes.js';
+import userRoutes from './routes/userRoutes.js';
 import categoryRoutes from './routes/categoryRoutes.js';
 import productRoutes from './routes/productRoutes.js';
 import stockRoutes from './routes/stockRoutes.js';
@@ -46,9 +47,10 @@ app.get('/test-db', async (req, res) => {
   }
 });
 
-app.use('/categories', categoryRoutes);
 app.use('/auth', authRoutes);
+app.use('/users', userRoutes);
 app.use('/products', productRoutes);
+app.use('/categories', categoryRoutes);
 app.use('/stock', stockRoutes);
 app.use('/sales', saleRoutes);
 app.use('/config', configRoutes);

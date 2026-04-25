@@ -1,7 +1,6 @@
 import express from 'express';
 import * as authController from '../auth/authController.js';
 import { authMiddleware } from '../middlewares/authMiddleware.js';
-import { adminOnly } from '../middlewares/adminMiddleware.js';
 import { me } from '../auth/authController.js';
 
 const router = express.Router();
@@ -63,44 +62,6 @@ router.post('/login', authController.login);
 
 /**
  * @swagger
- * /auth/register:
- *   post:
- *     summary: Registrar novo usuário (apenas admin)
- *     tags: [Auth]
- *     security:
- *       - bearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required: [name, email, password]
- *             properties:
- *               name:
- *                 type: string
- *                 example: João Silva
- *               email:
- *                 type: string
- *                 example: joao@gmail.com
- *               password:
- *                 type: string
- *                 example: 123456
- *               role:
- *                 type: string
- *                 example: user
- *     responses:
- *       201:
- *         description: Usuário criado com sucesso
- *       403:
- *         description: Acesso negado (não é admin)
- *       401:
- *         description: Token inválido ou não enviado
- */
-router.post('/register', authMiddleware, adminOnly, authController.register);
-
-/**
- * @swagger
  * /auth/refresh:
  *   post:
  *     summary: Gerar novo accessToken a partir do refreshToken
@@ -157,8 +118,5 @@ router.post('/refresh', authController.refresh);
 router.post('/logout', authController.logout);
 
 router.get('/me', authMiddleware, me);
-
-router.put('/update-email', authMiddleware, authController.updateEmail);
-router.put('/update-password', authMiddleware, authController.updatePassword);
 
 export default router;

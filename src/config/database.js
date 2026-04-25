@@ -1,33 +1,36 @@
-import mysql from 'mysql2/promise';
+import { Sequelize } from 'sequelize';
 import dotenv from 'dotenv';
+
 dotenv.config();
 
-const pool = mysql.createPool({
-  host: process.env.DB_HOST,
-  user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
-  database: process.env.DB_NAME,
-  port: Number(process.env.DB_PORT) || 3306,
+const sequelize = new Sequelize(
+  process.env.DB_NAME,
+  process.env.DB_USER,
+  process.env.DB_PASSWORD,
+  {
+    host: process.env.DB_HOST,
+    port: Number(process.env.DB_PORT) || 3306,
+    dialect: 'mysql',
 
-  waitForConnections: true,
-  connectionLimit: 10,
-  queueLimit: 0,
+    logging: false, // ou console.log se quiser ver queries
 
-  enableKeepAlive: true,
-  connectTimeout: 10000,
-});
+    pool: {
+      max: 10,
+      min: 0,
+      acquire: 30000,
+      idle: 10000,
+    },
+  }
+);
 
-// 🔥 TESTE DE CONEXÃO (NÃO QUEBRA O APP)
+// 🔥 TESTE DE CONEXÃO
 export const testConnection = async () => {
   try {
-    const conn = await pool.getConnection();
-    await conn.query('SELECT 1');
-    conn.release();
-
-    console.log('✅ Banco conectado com sucesso');
-  } catch (err) {
-    console.error('❌ ERRO AO CONECTAR NO BANCO:', err.message);
+    await sequelize.authenticate();
+    console.log('✅ Sequelize conectado com sucesso');
+  } catch (error) {
+    console.error('❌ ERRO AO CONECTAR:', error.message);
   }
 };
 
-export default pool;
+export default sequelize;

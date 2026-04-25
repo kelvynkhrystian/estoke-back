@@ -9,15 +9,6 @@ export const login = async (req, res) => {
   }
 };
 
-export const register = async (req, res) => {
-  try {
-    const data = await authService.register(req.body);
-    res.status(201).json(data);
-  } catch (error) {
-    res.status(400).json({ error: error.message });
-  }
-};
-
 // REFRESH
 export const refresh = async (req, res) => {
   try {
@@ -47,23 +38,5 @@ export const me = async (req, res) => {
     res.json(data);
   } catch (error) {
     res.status(404).json({ error: error.message });
-  }
-};
-
-export const updateEmail = async (req, res) => {
-  try {
-    const data = await authService.updateEmail(req.user.id, req.body);
-    res.json(data);
-  } catch (e) {
-    res.status(400).json({ message: e.message });
-  }
-};
-
-export const updatePassword = async (req, res) => {
-  try {
-    const data = await authService.updatePassword(req.user.id, req.body);
-    res.json(data);
-  } catch (e) {
-    res.status(400).json({ message: e.message });
   }
 };

@@ -19,7 +19,12 @@ router.get('/:id', authMiddleware, adminOnly, userController.findById);
 router.put('/:id', authMiddleware, adminOnly, userController.update);
 
 // Admin ativa/desativa usuário
-// router.patch('/:id/status', authMiddleware, adminOnly, userController.updateStatus);
+router.patch(
+  '/:id/status',
+  authMiddleware,
+  adminOnly,
+  userController.updateStatus
+);
 
 // Usuário logado atualiza o próprio email
 router.put('/me/email', authMiddleware, userController.updateEmail);

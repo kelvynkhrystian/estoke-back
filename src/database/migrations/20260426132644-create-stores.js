@@ -2,7 +2,7 @@
 
 module.exports = {
   async up(queryInterface, Sequelize) {
-    await queryInterface.createTable('categories', {
+    await queryInterface.createTable('stores', {
       id: {
         type: Sequelize.INTEGER,
         autoIncrement: true,
@@ -12,7 +12,11 @@ module.exports = {
       name: {
         type: Sequelize.STRING(100),
         allowNull: false,
-        unique: true,
+      },
+      is_active: {
+        type: Sequelize.BOOLEAN,
+        allowNull: true,
+        defaultValue: true,
       },
       created_at: {
         type: Sequelize.DATE,
@@ -26,15 +30,10 @@ module.exports = {
           'CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP'
         ),
       },
-      is_active: {
-        type: Sequelize.BOOLEAN,
-        allowNull: true,
-        defaultValue: true,
-      },
     });
   },
 
   async down(queryInterface) {
-    await queryInterface.dropTable('categories');
+    await queryInterface.dropTable('stores');
   },
 };

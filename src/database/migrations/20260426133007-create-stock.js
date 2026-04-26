@@ -1,7 +1,6 @@
 'use strict';
 
-/** @type {import('sequelize-cli').Migration} */
-module.exports = {
+export default {
   async up(queryInterface, Sequelize) {
     await queryInterface.createTable('stock', {
       id: {
@@ -59,8 +58,5 @@ module.exports = {
 
   async down(queryInterface) {
     await queryInterface.dropTable('stock');
-    await queryInterface.sequelize.query(
-      'DROP TYPE IF EXISTS "enum_stock_item_type";'
-    );
   },
 };

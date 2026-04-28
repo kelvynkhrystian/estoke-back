@@ -1,5 +1,6 @@
 import bcrypt from 'bcrypt';
-import pool from '../config/database.js';
+import { Op } from 'sequelize';
+import { User } from '../models/index.js';
 
 // Admin cria usuário/admin
 export const create = async ({
@@ -9,130 +10,130 @@ export const create = async ({
   role = 'employee',
   store_id = null,
 }) => {
-  const [existing] = await pool.query('SELECT id FROM users WHERE email = ?', [
-    email,
-  ]);
+  const existing = await User.findOne({
+    where: { email },
+    attributes: ['id'],
+  });
 
-  if (existing.length > 0) {
+  if (existing) {
     throw new Error('E-mail já cadastrado');
   }
 
   const password_hash = await bcrypt.hash(password, 10);
 
-  const [result] = await pool.query(
-    `
-    INSERT INTO users (name, email, password_hash, role, store_id, is_active)
-    VALUES (?, ?, ?, ?, ?, 1)
-    `,
-    [name, email, password_hash, role, store_id]
-  );
-
-  return {
-    id: result.insertId,
+  const user = await User.create({
     name,
     email,
+    password_hash,
     role,
     store_id,
-    is_active: 1,
-  };
+    is_active: true,
+  });
+
+  const data = user.toJSON();
+  delete data.password_hash;
+
+  return data;
 };
 
 // Admin lista usuários
 export const list = async () => {
-  const [rows] = await pool.query(
-    `
-    SELECT id, name, email, role, store_id, is_active, created_at, updated_at
-    FROM users
-    ORDER BY id DESC
-    `
-  );
-
-  return rows;
+  return await User.findAll({
+    attributes: [
+      'id',
+      'name',
+      'email',
+      'role',
+      'store_id',
+      'is_active',
+      'created_at',
+      'updated_at',
+    ],
+    order: [['id', 'DESC']],
+  });
 };
 
 // Admin busca usuário por ID
 export const findById = async (id) => {
-  const [rows] = await pool.query(
-    `
-    SELECT id, name, email, role, store_id, is_active, created_at, updated_at
-    FROM users
-    WHERE id = ?
-    `,
-    [id]
-  );
+  const user = await User.findByPk(id, {
+    attributes: [
+      'id',
+      'name',
+      'email',
+      'role',
+      'store_id',
+      'is_active',
+      'created_at',
+      'updated_at',
+    ],
+  });
 
-  if (rows.length === 0) {
+  if (!user) {
     throw new Error('Usuário não encontrado');
   }
 
-  return rows[0];
+  return user;
 };
 
 // Admin edita usuário
 export const update = async (id, { name, email, role, store_id }) => {
-  const [users] = await pool.query('SELECT id FROM users WHERE id = ?', [id]);
+  const user = await User.findByPk(id);
 
-  if (users.length === 0) {
+  if (!user) {
     throw new Error('Usuário não encontrado');
   }
 
   if (email) {
-    const [existingEmail] = await pool.query(
-      'SELECT id FROM users WHERE email = ? AND id != ?',
-      [email, id]
-    );
+    const existingEmail = await User.findOne({
+      where: {
+        email,
+        id: {
+          [Op.ne]: id,
+        },
+      },
+      attributes: ['id'],
+    });
 
-    if (existingEmail.length > 0) {
+    if (existingEmail) {
       throw new Error('E-mail já está em uso');
     }
   }
 
-  await pool.query(
-    `
-    UPDATE users
-    SET 
-      name = COALESCE(?, name),
-      email = COALESCE(?, email),
-      role = COALESCE(?, role),
-      store_id = ?
-    WHERE id = ?
-    `,
-    [name, email, role, store_id ?? null, id]
-  );
+  await user.update({
+    name: name ?? user.name,
+    email: email ?? user.email,
+    role: role ?? user.role,
+    store_id: store_id ?? null,
+  });
 
   return await findById(id);
 };
 
 // Admin ativa/desativa usuário
 export const updateStatus = async (id, { is_active }) => {
-  const [users] = await pool.query('SELECT id FROM users WHERE id = ?', [id]);
+  const user = await User.findByPk(id);
 
-  if (users.length === 0) {
+  if (!user) {
     throw new Error('Usuário não encontrado');
   }
 
-  await pool.query('UPDATE users SET is_active = ? WHERE id = ?', [
-    is_active ? 1 : 0,
-    id,
-  ]);
+  await user.update({
+    is_active: Boolean(is_active),
+  });
 
   return {
     id: Number(id),
-    is_active: is_active ? 1 : 0,
+    is_active: Boolean(is_active),
   };
 };
 
 // Usuário logado troca o próprio email
 export const updateEmail = async (userId, { new_email, password }) => {
-  const [users] = await pool.query('SELECT * FROM users WHERE id = ?', [
-    userId,
-  ]);
+  const user = await User.findByPk(userId);
 
-  if (users.length === 0) {
+  if (!user) {
     throw new Error('Usuário não encontrado');
   }
-
-  const user = users[0];
 
   const isMatch = await bcrypt.compare(password, user.password_hash);
 
@@ -140,19 +141,23 @@ export const updateEmail = async (userId, { new_email, password }) => {
     throw new Error('Senha inválida');
   }
 
-  const [existingEmail] = await pool.query(
-    'SELECT id FROM users WHERE email = ? AND id != ?',
-    [new_email, userId]
-  );
+  const existingEmail = await User.findOne({
+    where: {
+      email: new_email,
+      id: {
+        [Op.ne]: userId,
+      },
+    },
+    attributes: ['id'],
+  });
 
-  if (existingEmail.length > 0) {
+  if (existingEmail) {
     throw new Error('E-mail já está em uso');
   }
 
-  await pool.query('UPDATE users SET email = ? WHERE id = ?', [
-    new_email,
-    userId,
-  ]);
+  await user.update({
+    email: new_email,
+  });
 
   return { email: new_email };
 };
@@ -162,15 +167,11 @@ export const updatePassword = async (
   userId,
   { current_password, new_password }
 ) => {
-  const [users] = await pool.query('SELECT * FROM users WHERE id = ?', [
-    userId,
-  ]);
+  const user = await User.findByPk(userId);
 
-  if (users.length === 0) {
+  if (!user) {
     throw new Error('Usuário não encontrado');
   }
-
-  const user = users[0];
 
   const isMatch = await bcrypt.compare(current_password, user.password_hash);
 
@@ -178,12 +179,11 @@ export const updatePassword = async (
     throw new Error('Senha atual inválida');
   }
 
-  const newHash = await bcrypt.hash(new_password, 10);
+  const password_hash = await bcrypt.hash(new_password, 10);
 
-  await pool.query('UPDATE users SET password_hash = ? WHERE id = ?', [
-    newHash,
-    userId,
-  ]);
+  await user.update({
+    password_hash,
+  });
 
   return { message: 'Senha atualizada com sucesso' };
 };

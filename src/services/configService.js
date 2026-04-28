@@ -1,26 +1,30 @@
-import pool from '../config/database.js';
+import { AppConfig } from '../models/index.js';
 import fs from 'fs';
 import path from 'path';
 
 // 🔹 GET CONFIG
 export const getConfig = async () => {
-  const [rows] = await pool.query('SELECT * FROM app_config LIMIT 1');
-  return rows[0] || {};
+  const config = await AppConfig.findOne();
+
+  return config ? config.toJSON() : {};
 };
 
 // 🔹 UPDATE CONFIG
 export const updateConfig = async (data, file) => {
-  // pega config atual
-  const [rows] = await pool.query('SELECT * FROM app_config LIMIT 1');
-  const current = rows[0];
+  let config = await AppConfig.findOne();
 
-  let logoUrl = current.logo_url;
+  // se não existir ainda, cria
+  if (!config) {
+    config = await AppConfig.create({});
+  }
+
+  let logoUrl = config.logo_url;
 
   // se veio nova imagem
   if (file) {
     // 🔥 APAGA A ANTIGA
-    if (current.logo_url) {
-      const oldPath = path.join(process.cwd(), current.logo_url);
+    if (config.logo_url) {
+      const oldPath = path.join(process.cwd(), config.logo_url);
 
       if (fs.existsSync(oldPath)) {
         fs.unlinkSync(oldPath);
@@ -31,16 +35,13 @@ export const updateConfig = async (data, file) => {
     logoUrl = `/uploads/logos/${file.filename}`;
   }
 
-  // atualiza banco
-  await pool.query(
-    `UPDATE app_config 
-     SET app_name = ?, slogan = ?, theme = ?, logo_url = ?
-     WHERE id = 1`,
-    [data.app_name, data.slogan, data.theme || 'dark', logoUrl]
-  );
-
-  return {
-    ...data,
+  // atualiza via Sequelize
+  await config.update({
+    app_name: data.app_name ?? config.app_name,
+    slogan: data.slogan ?? config.slogan,
+    theme: data.theme ?? config.theme ?? 'dark',
     logo_url: logoUrl,
-  };
+  });
+
+  return config.toJSON();
 };

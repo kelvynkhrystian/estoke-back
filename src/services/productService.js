@@ -1,61 +1,50 @@
-import pool from '../config/database.js';
+import sequelize from '../config/database.js';
+import {
+  Product,
+  Category,
+  ProductInsumo,
+  Insumo,
+  Stock,
+} from '../models/index.js';
 
 // ============================
 // LISTAR TODOS (COM INSUMOS)
 // ============================
 export const getAllProducts = async () => {
-  const [products] = await pool.query(`
-    SELECT p.*, c.name AS category_name
-    FROM products p
-    LEFT JOIN categories c ON p.category_id = c.id
-  `);
-
-  for (const product of products) {
-    const [insumos] = await pool.query(
-      `
-      SELECT 
-        pi.insumo_id,
-        pi.quantity,
-        i.name,
-        i.unit
-      FROM product_insumos pi
-      JOIN insumos i ON i.id = pi.insumo_id
-      WHERE pi.product_id = ?
-    `,
-      [product.id]
-    );
-
-    product.insumos = insumos;
-  }
+  const products = await Product.findAll({
+    include: [
+      {
+        model: Category,
+        attributes: ['id', 'name'],
+      },
+      {
+        model: ProductInsumo,
+        include: [
+          {
+            model: Insumo,
+            attributes: ['id', 'name', 'unit'],
+          },
+        ],
+      },
+    ],
+  });
 
   return products;
 };
 
 // ============================
-// BUSCAR POR ID (COM INSUMOS)
+// BUSCAR POR ID
 // ============================
 export const getProductById = async (id) => {
-  const [[product]] = await pool.query('SELECT * FROM products WHERE id = ?', [
-    id,
-  ]);
-
-  if (!product) return null;
-
-  const [insumos] = await pool.query(
-    `
-    SELECT 
-      pi.insumo_id,
-      pi.quantity,
-      i.name,
-      i.unit
-    FROM product_insumos pi
-    JOIN insumos i ON i.id = pi.insumo_id
-    WHERE pi.product_id = ?
-  `,
-    [id]
-  );
-
-  product.insumos = insumos;
+  const product = await Product.findByPk(id, {
+    include: [
+      Category,
+      {
+        model: ProductInsumo,
+        include: [Insumo],
+      },
+    ],
+  });
 
   return product;
 };
@@ -64,11 +53,9 @@ export const getProductById = async (id) => {
 // CRIAR
 // ============================
 export const createProduct = async (data) => {
-  const conn = await pool.getConnection();
+  const t = await sequelize.transaction();
 
   try {
-    await conn.beginTransaction();
-
     const {
       name,
       sku,
@@ -83,62 +70,49 @@ export const createProduct = async (data) => {
     } = data;
 
     // 🔥 1. cria produto
-    const [result] = await conn.query(
-      `
-      INSERT INTO products 
-      (
-        name, sku, unit,
-        cost_price, sale_price, resale_price,
-        min_stock, category_id, is_active
-      )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `,
-      [
+    const product = await Product.create(
+      {
         name,
         sku,
         unit,
-        cost_price || 0,
-        sale_price || 0,
-        resale_price || 0,
-        min_stock || 0,
+        cost_price: cost_price || 0,
+        sale_price: sale_price || 0,
+        resale_price: resale_price || 0,
+        min_stock: min_stock || 0,
         category_id,
-        is_active ?? 1,
-      ]
+        is_active: is_active ?? true,
+      },
+      { transaction: t }
     );
 
-    const productId = result.insertId;
-
-    // 🔥 2. salvar insumos
+    // 🔥 2. salva insumos
     if (insumos.length > 0) {
-      for (const item of insumos) {
-        await conn.query(
-          `
-          INSERT INTO product_insumos (product_id, insumo_id, quantity)
-          VALUES (?, ?, ?)
-        `,
-          [productId, item.insumo_id, item.quantity]
-        );
-      }
+      const insumosData = insumos.map((item) => ({
+        product_id: product.id,
+        insumo_id: item.insumo_id,
+        quantity: item.quantity,
+      }));
+
+      await ProductInsumo.bulkCreate(insumosData, { transaction: t });
     }
 
-    // 🔥 3. criar estoque automático
-    await conn.query(
-      `
-      INSERT INTO stock (store_id, item_id, item_type, quantity, created_at, updated_at)
-      VALUES (?, ?, 'PRODUCT', 0, NOW(), NOW())
-    `,
-      [1, productId]
+    // 🔥 3. cria estoque automático
+    await Stock.create(
+      {
+        store_id: 1,
+        item_id: product.id,
+        item_type: 'PRODUCT',
+        quantity: 0,
+      },
+      { transaction: t }
     );
 
-    await conn.commit();
+    await t.commit();
 
-    return { id: productId, ...data };
+    return product;
   } catch (error) {
-    await conn.rollback();
-    console.error(error);
+    await t.rollback();
     throw error;
-  } finally {
-    conn.release();
   }
 };
 
@@ -146,104 +120,99 @@ export const createProduct = async (data) => {
 // UPDATE
 // ============================
 export const updateProduct = async (id, data) => {
-  const {
-    name,
-    sku,
-    unit,
-    cost_price,
-    sale_price,
-    resale_price,
-    min_stock,
-    category_id,
-    is_active,
-    insumos = [],
-  } = data;
+  const t = await sequelize.transaction();
 
-  await pool.query(
-    `
-    UPDATE products SET
-      name = ?,
-      sku = ?,
-      unit = ?,
-      cost_price = ?,
-      sale_price = ?,
-      resale_price = ?,
-      min_stock = ?,
-      category_id = ?,
-      is_active = ?
-    WHERE id = ?
-  `,
-    [
+  try {
+    const product = await Product.findByPk(id);
+
+    if (!product) throw new Error('Produto não encontrado');
+
+    const {
       name,
       sku,
       unit,
-      cost_price || 0,
-      sale_price || 0,
-      resale_price || 0,
-      min_stock || 0,
+      cost_price,
+      sale_price,
+      resale_price,
+      min_stock,
       category_id,
-      is_active ?? 1,
-      id,
-    ]
-  );
+      is_active,
+      insumos = [],
+    } = data;
 
-  // 🔥 REMOVE ANTIGOS
-  await pool.query('DELETE FROM product_insumos WHERE product_id = ?', [id]);
+    // 🔥 update produto
+    await product.update(
+      {
+        name,
+        sku,
+        unit,
+        cost_price,
+        sale_price,
+        resale_price,
+        min_stock,
+        category_id,
+        is_active,
+      },
+      { transaction: t }
+    );
 
-  // 🔥 INSERE NOVOS
-  if (insumos.length > 0) {
-    for (const item of insumos) {
-      await pool.query(
-        `
-        INSERT INTO product_insumos (product_id, insumo_id, quantity)
-        VALUES (?, ?, ?)
-      `,
-        [id, item.insumo_id, item.quantity]
-      );
+    // 🔥 remove antigos
+    await ProductInsumo.destroy({
+      where: { product_id: id },
+      transaction: t,
+    });
+
+    // 🔥 recria
+    if (insumos.length > 0) {
+      const insumosData = insumos.map((item) => ({
+        product_id: id,
+        insumo_id: item.insumo_id,
+        quantity: item.quantity,
+      }));
+
+      await ProductInsumo.bulkCreate(insumosData, { transaction: t });
     }
-  }
 
-  return { id, ...data };
+    await t.commit();
+
+    return product;
+  } catch (error) {
+    await t.rollback();
+    throw error;
+  }
 };
 
 // ============================
 // DELETE
 // ============================
-// export const deleteProduct = async (id) => {
-//   await pool.query(
-//     'DELETE FROM products WHERE id = ?',
-//     [id]
-//   )
-
-//   return { message: 'Produto deletado' }
-// }
-
 export const deleteProduct = async (id) => {
-  const conn = await pool.getConnection();
+  const t = await sequelize.transaction();
 
   try {
-    await conn.beginTransaction();
+    // 🔥 remove vínculos
+    await ProductInsumo.destroy({
+      where: { product_id: id },
+      transaction: t,
+    });
 
-    // 🔥 1. remove vínculo com insumos
-    await conn.query('DELETE FROM product_insumos WHERE product_id = ?', [id]);
+    await Stock.destroy({
+      where: {
+        item_id: id,
+        item_type: 'PRODUCT',
+      },
+      transaction: t,
+    });
 
-    // 🔥 2. remove do estoque
-    await conn.query(
-      'DELETE FROM stock WHERE item_id = ? AND item_type = "PRODUCT"',
-      [id]
-    );
+    await Product.destroy({
+      where: { id },
+      transaction: t,
+    });
 
-    // 🔥 3. remove produto
-    await conn.query('DELETE FROM products WHERE id = ?', [id]);
-
-    await conn.commit();
+    await t.commit();
 
     return { message: 'Produto deletado com sucesso' };
   } catch (error) {
-    await conn.rollback();
-    console.error(error);
+    await t.rollback();
     throw error;
-  } finally {
-    conn.release();
   }
 };

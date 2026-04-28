@@ -1,107 +1,109 @@
-import pool from '../config/database.js';
+import sequelize from '../config/database.js';
+import { Insumo, ProductInsumo, Stock } from '../models/index.js';
 
 // LISTAR
 export const getAllInsumos = async () => {
-  const [rows] = await pool.query('SELECT * FROM insumos');
-  return rows;
+  return await Insumo.findAll({
+    order: [['id', 'DESC']],
+  });
 };
 
 // BUSCAR POR ID
 export const getInsumoById = async (id) => {
-  const [rows] = await pool.query('SELECT * FROM insumos WHERE id = ?', [id]);
-  return rows[0];
+  const insumo = await Insumo.findByPk(id);
+
+  if (!insumo) {
+    throw new Error('Insumo não encontrado');
+  }
+
+  return insumo;
 };
 
 // CRIAR
 export const createInsumo = async (data) => {
-  const conn = await pool.getConnection();
+  const transaction = await sequelize.transaction();
 
   try {
-    await conn.beginTransaction();
-
     const { name, unit, min_stock, is_active } = data;
 
-    // 🔥 1. cria insumo
-    const [result] = await conn.query(
-      `
-      INSERT INTO insumos (name, unit, min_stock, is_active)
-      VALUES (?, ?, ?, ?)
-    `,
-      [name, unit || 'und', min_stock || 0, is_active ?? 1]
+    const insumo = await Insumo.create(
+      {
+        name,
+        unit: unit || 'und',
+        min_stock: min_stock || 0,
+        is_active: is_active ?? true,
+      },
+      { transaction }
     );
 
-    const insumoId = result.insertId;
-
-    // 🔥 2. cria estoque automático
-    await conn.query(
-      `
-      INSERT INTO stock (store_id, item_id, item_type, quantity, created_at, updated_at)
-      VALUES (?, ?, 'INSUMO', 0, NOW(), NOW())
-    `,
-      [
-        1, // depois pode vir do usuário
-        insumoId,
-      ]
+    await Stock.create(
+      {
+        store_id: 1,
+        item_id: insumo.id,
+        item_type: 'INSUMO',
+        quantity: 0,
+      },
+      { transaction }
     );
 
-    await conn.commit();
+    await transaction.commit();
 
-    return { id: insumoId, ...data };
+    return insumo;
   } catch (error) {
-    await conn.rollback();
-    console.error(error);
+    await transaction.rollback();
     throw error;
-  } finally {
-    conn.release();
   }
 };
 
 // UPDATE
 export const updateInsumo = async (id, data) => {
-  const { name, unit, min_stock, is_active } = data;
+  const insumo = await Insumo.findByPk(id);
 
-  await pool.query(
-    `
-    UPDATE insumos SET
-      name = ?,
-      unit = ?,
-      min_stock = ?,
-      is_active = ?
-    WHERE id = ?
-  `,
-    [name, unit, min_stock, is_active, id]
-  );
+  if (!insumo) {
+    throw new Error('Insumo não encontrado');
+  }
 
-  return { id, ...data };
+  await insumo.update({
+    name: data.name ?? insumo.name,
+    unit: data.unit ?? insumo.unit,
+    min_stock: data.min_stock ?? insumo.min_stock,
+    is_active: data.is_active ?? insumo.is_active,
+  });
+
+  return insumo;
 };
 
 // DELETE
 export const deleteInsumo = async (id) => {
-  const conn = await pool.getConnection();
+  const transaction = await sequelize.transaction();
 
   try {
-    await conn.beginTransaction();
+    const insumo = await Insumo.findByPk(id, { transaction });
 
-    // 🔥 1. remove vínculo com produtos
-    await conn.query('DELETE FROM product_insumos WHERE insumo_id = ?', [id]);
+    if (!insumo) {
+      throw new Error('Insumo não encontrado');
+    }
 
-    // 🔥 2. remove do estoque
-    await conn.query(
-      'DELETE FROM stock WHERE item_id = ? AND item_type = "INSUMO"',
-      [id]
-    );
+    await ProductInsumo.destroy({
+      where: { insumo_id: id },
+      transaction,
+    });
 
-    // 🔥 3. remove insumo
-    await conn.query('DELETE FROM insumos WHERE id = ?', [id]);
+    await Stock.destroy({
+      where: {
+        item_id: id,
+        item_type: 'INSUMO',
+      },
+      transaction,
+    });
 
-    await conn.commit();
+    await insumo.destroy({ transaction });
+
+    await transaction.commit();
 
     return { message: 'Insumo deletado com sucesso' };
   } catch (error) {
-    await conn.rollback();
-    console.error(error);
+    await transaction.rollback();
     throw error;
-  } finally {
-    conn.release();
   }
 };

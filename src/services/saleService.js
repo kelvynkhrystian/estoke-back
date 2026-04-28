@@ -1,115 +1,107 @@
-import pool from '../config/database.js';
+import sequelize from '../config/database.js';
+import { Sale, SaleItem, Product, User } from '../models/index.js';
 
 // CRIAR VENDA
 export const createSale = async ({ items, store_id, created_by }) => {
-  const conn = await pool.getConnection();
+  const transaction = await sequelize.transaction();
 
   try {
-    await conn.beginTransaction();
-
-    const [saleResult] = await conn.query(
-      `
-      INSERT INTO sales (store_id, created_by, total_amount)
-      VALUES (?, ?, 0)
-    `,
-      [store_id, created_by]
+    const sale = await Sale.create(
+      {
+        store_id,
+        created_by,
+        total_amount: 0,
+      },
+      { transaction }
     );
 
-    const saleId = saleResult.insertId;
     let totalAmount = 0;
 
     for (const item of items) {
-      // 🔥 Adicionamos o price_type aqui
       const { product_id, quantity, unit_price, price_type } = item;
 
       if (!product_id || !quantity || unit_price === undefined) {
         throw new Error('Item inválido');
       }
 
-      totalAmount += quantity * unit_price;
+      totalAmount += Number(quantity) * Number(unit_price);
 
-      // 🔥 INSERT agora inclui o price_type
-      await conn.query(
-        `
-        INSERT INTO sale_items (sale_id, product_id, quantity, unit_price, price_type)
-        VALUES (?, ?, ?, ?, ?)
-      `,
-        [saleId, product_id, quantity, unit_price, price_type || 'normal']
+      await SaleItem.create(
+        {
+          sale_id: sale.id,
+          product_id,
+          quantity,
+          unit_price,
+          price_type: price_type || 'normal',
+        },
+        { transaction }
       );
-
-      // ... (Resto do código de estoque e movements permanece igual)
     }
 
-    await conn.query(
-      `
-      UPDATE sales SET total_amount = ?
-      WHERE id = ?
-    `,
-      [totalAmount, saleId]
+    await sale.update(
+      {
+        total_amount: totalAmount,
+      },
+      { transaction }
     );
 
-    await conn.commit();
+    await transaction.commit();
+
     return {
       message: 'Venda realizada com sucesso',
-      sale_id: saleId,
+      sale_id: sale.id,
       total: totalAmount,
     };
   } catch (error) {
-    await conn.rollback();
+    await transaction.rollback();
     throw error;
-  } finally {
-    conn.release();
   }
 };
 
 // LISTAR VENDAS
 export const getSales = async (store_id, role) => {
-  let query = `
-    SELECT s.*, u.name AS user_name
-    FROM sales s
-    JOIN users u ON s.created_by = u.id
-  `;
-  const params = [];
+  const where = {};
 
   if (role !== 'admin') {
-    query += ' WHERE s.store_id = ?';
-    params.push(store_id);
+    where.store_id = store_id;
   }
 
-  query += ' ORDER BY s.created_at DESC';
+  const sales = await Sale.findAll({
+    where,
+    include: [
+      {
+        model: User,
+        attributes: ['id', 'name'],
+      },
+    ],
+    order: [['created_at', 'DESC']],
+  });
 
-  const [rows] = await pool.query(query, params);
-  return rows;
+  return sales;
 };
 
 // DETALHE DA VENDA
 export const getSaleById = async (id, store_id, role) => {
-  let query = 'SELECT * FROM sales WHERE id = ?';
-  const params = [id];
+  const where = { id };
 
   if (role !== 'admin') {
-    query += ' AND store_id = ?';
-    params.push(store_id);
+    where.store_id = store_id;
   }
 
-  const [saleRows] = await pool.query(query, params);
+  const sale = await Sale.findOne({
+    where,
+    include: [
+      {
+        model: SaleItem,
+        include: [
+          {
+            model: Product,
+            attributes: ['id', 'name'],
+          },
+        ],
+      },
+    ],
+  });
 
-  if (saleRows.length === 0) {
-    return null;
-  }
-
-  const [items] = await pool.query(
-    `
-    SELECT si.*, p.name AS product_name
-    FROM sale_items si
-    JOIN products p ON si.product_id = p.id
-    WHERE si.sale_id = ?
-  `,
-    [id]
-  );
-
-  return {
-    ...saleRows[0],
-    items,
-  };
+  return sale;
 };

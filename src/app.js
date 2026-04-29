@@ -1,5 +1,5 @@
 import express from 'express';
-import pool from './config/database.js';
+import sequelize from './config/database.js';
 import cors from 'cors';
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './config/swagger.js';
@@ -16,10 +16,8 @@ import storeRoutes from './routes/storeRoutes.js';
 import insumoRoutes from './routes/insumoRoutes.js';
 
 const app = express();
-app.use(express.json());
 
-// testando doc automatica
-app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+app.use(express.json());
 
 app.use(
   cors({
@@ -30,11 +28,14 @@ app.use(
 
 app.use(
   helmet({
-    contentSecurityPolicy: false, // evita conflito com Swagger
+    contentSecurityPolicy: false,
   })
 );
 
-// api ON
+// Swagger
+app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
+// API ON
 app.get('/', (req, res) => {
   res.json({
     status: 'API ONLINE 🚀',
@@ -43,11 +44,11 @@ app.get('/', (req, res) => {
   });
 });
 
-// teste de conexão
+// Teste Sequelize
 app.get('/test-db', async (req, res) => {
   try {
-    const [rows] = await pool.query('SELECT 1');
-    res.json({ message: 'Banco conectado 🚀', rows });
+    await sequelize.authenticate();
+    res.json({ message: 'Banco conectado 🚀' });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -63,11 +64,22 @@ app.use('/config', configRoutes);
 app.use('/stores', storeRoutes);
 app.use('/insumos', insumoRoutes);
 
-app.use((err, req, res) => {
-  res.status(500).json({
-    error: 'Erro interno do servidor',
+// 404
+app.use((req, res) => {
+  res.status(404).json({
+    error: 'Rota não encontrada',
   });
 });
+
+// Middleware global de erro
+app.use((err, req, res, next) => {
+  console.error('🔥 ERRO GLOBAL:', err);
+
+  res.status(err.status || 500).json({
+    error: err.message || 'Erro interno do servidor',
+  });
+});
+
 console.log('🔥 APP CARREGADO 2...');
 
 export default app;

@@ -1,162 +1,167 @@
-import pool from '../config/database.js';
+import { Op, fn, col, literal } from 'sequelize';
+import sequelize from '../config/database.js';
+import {
+  Stock,
+  StockMovement,
+  StockTransfer,
+  StockTransferItem,
+  Store,
+  User,
+  Product,
+  Insumo,
+} from '../models/index.js';
 
 // 🔹 BUSCAR ESTOQUE (UNIFICADO)
-// export const getStock = async (store_id, type) => {
-//   let query = `
-//     SELECT
-//       s.item_id,
-//       s.item_type,
-//       s.quantity,
-//       st.name AS store_name,
-
-//       CASE
-//         WHEN s.item_type = 'PRODUCT' THEN p.name
-//         WHEN s.item_type = 'INSUMO' THEN i.name
-//       END AS name,
-
-//       CASE
-//         WHEN s.item_type = 'PRODUCT' THEN p.sku
-//         ELSE '-'
-//       END AS sku,
-
-//       CASE
-//         WHEN s.item_type = 'PRODUCT' THEN p.min_stock
-//         WHEN s.item_type = 'INSUMO' THEN i.min_stock
-//       END AS min_stock
-
-//     FROM stock s
-//     LEFT JOIN products p
-//       ON p.id = s.item_id AND s.item_type = 'PRODUCT'
-//     LEFT JOIN insumos i
-//       ON i.id = s.item_id AND s.item_type = 'INSUMO'
-//     JOIN stores st ON st.id = s.store_id
-//     WHERE s.store_id = ?
-//   `
-
-//   const params = [store_id]
-
-//   if (type) {
-//     query += ` AND s.item_type = ?`
-//     params.push(type)
-//   }
-
-//   const [rows] = await pool.query(query, params)
-//   return rows
-// }
-
 export const getStock = async (filters, type) => {
   const { user_store_id, role, store_id } = filters;
 
-  let query = `
-    SELECT
-      s.id,
-      s.store_id,
-      s.item_id,
-      s.item_type,
-      s.quantity,
-      st.name AS store_name,
-      CASE
-        WHEN s.item_type = 'PRODUCT' THEN p.name
-        WHEN s.item_type = 'INSUMO' THEN i.name
-      END AS name,
-      CASE
-        WHEN s.item_type = 'PRODUCT' THEN p.sku
-        ELSE NULL
-      END AS sku,
-      CASE
-        WHEN s.item_type = 'PRODUCT' THEN p.min_stock
-        WHEN s.item_type = 'INSUMO' THEN i.min_stock
-      END AS min_stock
-    FROM stock s
-    JOIN stores st ON st.id = s.store_id
-    LEFT JOIN products p
-      ON s.item_type = 'PRODUCT' AND p.id = s.item_id
-    LEFT JOIN insumos i
-      ON s.item_type = 'INSUMO' AND i.id = s.item_id
-    WHERE 1 = 1
-  `;
-
-  const params = [];
+  const where = {};
 
   if (type) {
-    query += ` AND s.item_type = ?`;
-    params.push(type);
+    where.item_type = type;
   }
 
   if (store_id) {
-    query += ` AND s.store_id = ?`;
-    params.push(Number(store_id));
+    where.store_id = Number(store_id);
   } else if (role !== 'admin') {
-    query += ` AND s.store_id = ?`;
-    params.push(user_store_id);
+    where.store_id = user_store_id;
   }
 
-  query += ` ORDER BY s.store_id ASC, name ASC`;
+  const stock = await Stock.findAll({
+    where,
+    include: [
+      {
+        model: Store,
+        attributes: ['id', 'name'],
+      },
+    ],
+    order: [
+      ['store_id', 'ASC'],
+      ['item_type', 'ASC'],
+      ['item_id', 'ASC'],
+    ],
+  });
 
-  const [rows] = await pool.query(query, params);
-  return rows;
+  const result = await Promise.all(
+    stock.map(async (item) => {
+      const data = item.toJSON();
+
+      let product = null;
+      let insumo = null;
+
+      if (data.item_type === 'PRODUCT') {
+        product = await Product.findByPk(data.item_id, {
+          attributes: ['id', 'name', 'sku', 'min_stock'],
+        });
+      }
+
+      if (data.item_type === 'INSUMO') {
+        insumo = await Insumo.findByPk(data.item_id, {
+          attributes: ['id', 'name', 'min_stock'],
+        });
+      }
+
+      return {
+        id: data.id,
+        store_id: data.store_id,
+        item_id: data.item_id,
+        item_type: data.item_type,
+        quantity: data.quantity,
+        store_name: data.Store?.name ?? null,
+        name: product?.name ?? insumo?.name ?? null,
+        sku: product?.sku ?? null,
+        min_stock: product?.min_stock ?? insumo?.min_stock ?? null,
+      };
+    })
+  );
+
+  return result.sort((a, b) => {
+    if (a.store_id !== b.store_id) return a.store_id - b.store_id;
+    return String(a.name || '').localeCompare(String(b.name || ''));
+  });
 };
 
 // 🔹 BUSCAR MOVIMENTOS (UNIFICADO)
 export const getMovements = async (store_id, type) => {
-  let query = `
-    SELECT 
-      sm.*,
-      u.name AS user_name,
-
-      CASE 
-        WHEN sm.item_type = 'PRODUCT' THEN p.name
-        WHEN sm.item_type = 'INSUMO' THEN i.name
-      END AS name
-
-    FROM stock_movements sm
-    LEFT JOIN products p 
-      ON p.id = sm.item_id AND sm.item_type = 'PRODUCT'
-    LEFT JOIN insumos i 
-      ON i.id = sm.item_id AND sm.item_type = 'INSUMO'
-    JOIN users u ON u.id = sm.created_by
-
-    WHERE sm.store_id = ?
-  `;
-
-  const params = [store_id];
+  const where = {
+    store_id,
+  };
 
   if (type) {
-    query += ` AND sm.item_type = ?`;
-    params.push(type);
+    where.item_type = type;
   }
 
-  query += ` ORDER BY sm.created_at DESC`;
+  const movements = await StockMovement.findAll({
+    where,
+    include: [
+      {
+        model: User,
+        attributes: ['id', 'name'],
+      },
+    ],
+    order: [['created_at', 'DESC']],
+  });
 
-  const [rows] = await pool.query(query, params);
-  return rows;
+  const result = await Promise.all(
+    movements.map(async (movement) => {
+      const data = movement.toJSON();
+
+      let product = null;
+      let insumo = null;
+
+      if (data.item_type === 'PRODUCT') {
+        product = await Product.findByPk(data.item_id, {
+          attributes: ['id', 'name'],
+        });
+      }
+
+      if (data.item_type === 'INSUMO') {
+        insumo = await Insumo.findByPk(data.item_id, {
+          attributes: ['id', 'name'],
+        });
+      }
+
+      return {
+        ...data,
+        user_name: data.User?.name ?? null,
+        name: product?.name ?? insumo?.name ?? null,
+      };
+    })
+  );
+
+  return result;
 };
 
 // 🔹 ATUALIZA ESTOQUE
-async function updateStock(conn, data) {
+async function updateStock(data, transaction) {
   const { item_id, store_id, quantity, type, item_type } = data;
 
   if (!['PRODUCT', 'INSUMO'].includes(item_type)) {
     throw new Error('Tipo inválido');
   }
 
+  if (!['IN', 'OUT', 'ADJUST'].includes(type)) {
+    throw new Error('Tipo de movimentação inválido');
+  }
+
   const id = Number(item_id);
   const qty = Number(quantity);
 
-  // 🔍 pega estoque atual
-  const [rows] = await conn.query(
-    `
-    SELECT * FROM stock
-    WHERE item_id = ? AND store_id = ? AND item_type = ?
-  `,
-    [id, store_id, item_type]
-  );
-
-  let current = 0;
-
-  if (rows.length > 0) {
-    current = Number(rows[0].quantity);
+  if (!id || !store_id || !qty || qty <= 0) {
+    throw new Error('Dados de estoque inválidos');
   }
+
+  const stock = await Stock.findOne({
+    where: {
+      item_id: id,
+      store_id,
+      item_type,
+    },
+    transaction,
+    lock: transaction.LOCK.UPDATE,
+  });
+
+  const current = stock ? Number(stock.quantity) : 0;
 
   let newQty = current;
 
@@ -168,29 +173,30 @@ async function updateStock(conn, data) {
     if (current < qty) {
       throw new Error('Estoque insuficiente');
     }
+
     newQty = current - qty;
   }
 
-  console.log('📊 ESTOQUE:', { item_type, current, qty, newQty });
+  if (type === 'ADJUST') {
+    newQty = qty;
+  }
 
-  if (rows.length > 0) {
-    // UPDATE
-    await conn.query(
-      `
-      UPDATE stock
-      SET quantity = ?
-      WHERE item_id = ? AND store_id = ? AND item_type = ?
-    `,
-      [newQty, id, store_id, item_type]
+  if (stock) {
+    await stock.update(
+      {
+        quantity: newQty,
+      },
+      { transaction }
     );
   } else {
-    // INSERT
-    await conn.query(
-      `
-      INSERT INTO stock (item_id, store_id, item_type, quantity)
-      VALUES (?, ?, ?, ?)
-    `,
-      [id, store_id, item_type, newQty]
+    await Stock.create(
+      {
+        item_id: id,
+        store_id,
+        item_type,
+        quantity: newQty,
+      },
+      { transaction }
     );
   }
 
@@ -198,7 +204,7 @@ async function updateStock(conn, data) {
 }
 
 // 🔹 INSERE MOVIMENTO
-async function insertMovement(conn, data) {
+async function insertMovement(data, transaction) {
   const {
     item_id,
     item_type,
@@ -217,24 +223,9 @@ async function insertMovement(conn, data) {
     throw new Error('Tipo inválido');
   }
 
-  const id = Number(item_id);
-
-  console.log('🧾 INSERT MOVEMENT:', {
-    item_id: id,
-    item_type,
-    store_id,
-    quantity,
-    type,
-  });
-
-  await conn.query(
-    `
-    INSERT INTO stock_movements
-    (item_id, item_type, store_id, quantity, type, created_by, reason, notes, reference_type, reference_id, balance_after)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `,
-    [
-      id,
+  await StockMovement.create(
+    {
+      item_id: Number(item_id),
       item_type,
       store_id,
       quantity,
@@ -243,161 +234,198 @@ async function insertMovement(conn, data) {
       reason,
       notes,
       reference_type,
-      reference_id || null,
+      reference_id: reference_id || null,
       balance_after,
-    ]
+    },
+    { transaction }
   );
-
-  console.log('📝 MOVIMENTO INSERIDO');
 }
 
 // 🔹 MOVIMENTAÇÃO
 export const movimentStock = async (data) => {
-  const conn = await pool.getConnection();
-
-  console.log('📦 DADOS RECEBIDOS NO SERVICE:', data);
+  const transaction = await sequelize.transaction();
 
   try {
-    await conn.beginTransaction();
+    const newQty = await updateStock(data, transaction);
 
-    const newQty = await updateStock(conn, data);
+    await insertMovement(
+      {
+        ...data,
+        balance_after: newQty,
+      },
+      transaction
+    );
 
-    console.log('📊 NOVO ESTOQUE:', newQty);
-
-    await insertMovement(conn, {
-      ...data,
-      balance_after: newQty,
-    });
-
-    console.log('📝 MOVIMENTO INSERIDO');
-
-    await conn.commit();
+    await transaction.commit();
 
     return { message: 'Movimentação realizada com sucesso' };
   } catch (error) {
-    console.error('❌ ERRO NO SERVICE:', error);
-
-    await conn.rollback();
+    await transaction.rollback();
     throw error;
-  } finally {
-    conn.release();
   }
 };
 
 // 🔥 TRANSFERÊNCIA (FUNCIONA PRA PRODUTOS E INSUMOS)
 export const transferStock = async (data) => {
-  const conn = await pool.getConnection();
+  const transaction = await sequelize.transaction();
 
   try {
-    await conn.beginTransaction();
+    const {
+      from_store_id,
+      to_store_id,
+      items,
+      item_type,
+      notes,
+      created_by = 1,
+    } = data;
 
-    const { from_store_id, to_store_id, items, item_type, notes } = data;
+    if (!from_store_id || !to_store_id) {
+      throw new Error('Lojas de origem e destino são obrigatórias');
+    }
 
-    // 🔥 cria transferência
-    const [transferResult] = await conn.query(
-      `
-      INSERT INTO stock_transfers
-      (from_store_id, to_store_id, status, created_by, notes, created_at, updated_at)
-      VALUES (?, ?, 'COMPLETED', ?, ?, NOW(), NOW())
-    `,
-      [from_store_id, to_store_id, 1, notes]
+    if (Number(from_store_id) === Number(to_store_id)) {
+      throw new Error('A loja de origem não pode ser igual à loja de destino');
+    }
+
+    if (!['PRODUCT', 'INSUMO'].includes(item_type)) {
+      throw new Error('Tipo inválido');
+    }
+
+    if (!Array.isArray(items) || items.length === 0) {
+      throw new Error('Nenhum item informado');
+    }
+
+    const transfer = await StockTransfer.create(
+      {
+        from_store_id,
+        to_store_id,
+        status: 'COMPLETED',
+        created_by,
+        confirmed_by: created_by,
+        notes,
+        confirmed_at: new Date(),
+      },
+      { transaction }
     );
 
-    const transferId = transferResult.insertId;
-
     for (const item of items) {
-      const { item_id, quantity } = item;
+      const itemId = Number(item.item_id);
+      const quantity = Number(item.quantity);
 
-      // 🔻 origem
-      const [[originStock]] = await conn.query(
-        `
-        SELECT * FROM stock
-        WHERE item_id = ? AND item_type = ? AND store_id = ?
-      `,
-        [item_id, item_type, from_store_id]
-      );
+      if (!itemId || !quantity || quantity <= 0) {
+        throw new Error('Item inválido na transferência');
+      }
 
-      if (!originStock || originStock.quantity < quantity) {
+      const originStock = await Stock.findOne({
+        where: {
+          item_id: itemId,
+          item_type,
+          store_id: from_store_id,
+        },
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+
+      if (!originStock || Number(originStock.quantity) < quantity) {
         throw new Error('Estoque insuficiente na origem');
       }
 
-      // 🔻 baixa origem
-      await conn.query(
-        `
-        UPDATE stock
-        SET quantity = quantity - ?, updated_at = NOW()
-        WHERE id = ?
-      `,
-        [quantity, originStock.id]
+      const originNewQty = Number(originStock.quantity) - quantity;
+
+      await originStock.update(
+        {
+          quantity: originNewQty,
+        },
+        { transaction }
       );
 
-      // 🔺 destino
-      const [[destStock]] = await conn.query(
-        `
-        SELECT * FROM stock
-        WHERE item_id = ? AND item_type = ? AND store_id = ?
-      `,
-        [item_id, item_type, to_store_id]
-      );
+      let destStock = await Stock.findOne({
+        where: {
+          item_id: itemId,
+          item_type,
+          store_id: to_store_id,
+        },
+        transaction,
+        lock: transaction.LOCK.UPDATE,
+      });
+
+      let destNewQty = quantity;
 
       if (destStock) {
-        await conn.query(
-          `
-          UPDATE stock
-          SET quantity = quantity + ?, updated_at = NOW()
-          WHERE id = ?
-        `,
-          [quantity, destStock.id]
+        destNewQty = Number(destStock.quantity) + quantity;
+
+        await destStock.update(
+          {
+            quantity: destNewQty,
+          },
+          { transaction }
         );
       } else {
-        await conn.query(
-          `
-          INSERT INTO stock (store_id, item_id, item_type, quantity, created_at, updated_at)
-          VALUES (?, ?, ?, ?, NOW(), NOW())
-        `,
-          [to_store_id, item_id, item_type, quantity]
+        destStock = await Stock.create(
+          {
+            store_id: to_store_id,
+            item_id: itemId,
+            item_type,
+            quantity,
+          },
+          { transaction }
         );
       }
 
-      // 🔥 salva item da transferência
-      await conn.query(
-        `
-        INSERT INTO stock_transfer_items
-        (transfer_id, item_id, item_type, quantity_sent, quantity_received, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, NOW(), NOW())
-      `,
-        [transferId, item_id, item_type, quantity, quantity]
+      await StockTransferItem.create(
+        {
+          transfer_id: transfer.id,
+          item_id: itemId,
+          item_type,
+          quantity_sent: quantity,
+          quantity_received: quantity,
+        },
+        { transaction }
       );
 
-      // 🔥 saída
-      await conn.query(
-        `
-        INSERT INTO stock_movements
-        (item_id, item_type, store_id, type, quantity, reason, notes, created_by, created_at, updated_at)
-        VALUES (?, ?, ?, 'OUT', ?, 'TRANSFER', ?, ?, NOW(), NOW())
-      `,
-        [item_id, item_type, from_store_id, quantity, notes, 1]
+      await StockMovement.create(
+        {
+          item_id: itemId,
+          item_type,
+          store_id: from_store_id,
+          type: 'OUT',
+          quantity,
+          reason: 'TRANSFERENCIA',
+          notes,
+          created_by,
+          reference_type: 'STOCK_TRANSFER',
+          reference_id: transfer.id,
+          balance_after: originNewQty,
+        },
+        { transaction }
       );
 
-      // 🔥 entrada
-      await conn.query(
-        `
-        INSERT INTO stock_movements
-        (item_id, item_type, store_id, type, quantity, reason, notes, created_by, created_at, updated_at)
-        VALUES (?, ?, ?, 'IN', ?, 'TRANSFER', ?, ?, NOW(), NOW())
-      `,
-        [item_id, item_type, to_store_id, quantity, notes, 1]
+      await StockMovement.create(
+        {
+          item_id: itemId,
+          item_type,
+          store_id: to_store_id,
+          type: 'IN',
+          quantity,
+          reason: 'TRANSFERENCIA',
+          notes,
+          created_by,
+          reference_type: 'STOCK_TRANSFER',
+          reference_id: transfer.id,
+          balance_after: destNewQty,
+        },
+        { transaction }
       );
     }
 
-    await conn.commit();
+    await transaction.commit();
 
-    return { message: 'Transferência realizada com sucesso' };
+    return {
+      message: 'Transferência realizada com sucesso',
+      transfer_id: transfer.id,
+    };
   } catch (error) {
-    await conn.rollback();
-    console.error('🔥 ERRO TRANSFER:', error);
+    await transaction.rollback();
     throw error;
-  } finally {
-    conn.release();
   }
 };

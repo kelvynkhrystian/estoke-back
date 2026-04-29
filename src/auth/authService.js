@@ -1,7 +1,9 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
-import pool from '../config/database.js';
+import { Op } from 'sequelize';
+
+import { User, RefreshToken } from '../models/index.js';
 import {
   JWT_SECRET,
   JWT_REFRESH_SECRET,
@@ -11,28 +13,29 @@ import {
 
 // 🔐 LOGIN
 export const login = async ({ email, password }) => {
-  const [users] = await pool.query(
-    'SELECT * FROM users WHERE email = ? AND is_active = 1',
-    [email]
-  );
+  const user = await User.findOne({
+    where: {
+      email,
+      is_active: true,
+    },
+  });
 
-  if (users.length === 0) {
+  if (!user) {
     throw new Error('Usuário não encontrado');
   }
 
-  const user = users[0];
-
-  // 🔒 bcrypt compare
   const isMatch = await bcrypt.compare(password, user.password_hash);
 
   if (!isMatch) {
     throw new Error('Senha inválida');
   }
 
-  // 🧹 remove tokens antigos (boa prática)
-  await pool.query('DELETE FROM refresh_tokens WHERE user_id = ?', [user.id]);
+  await RefreshToken.destroy({
+    where: {
+      user_id: user.id,
+    },
+  });
 
-  // 🔑 ACCESS TOKEN
   const accessToken = jwt.sign(
     {
       id: user.id,
@@ -43,7 +46,6 @@ export const login = async ({ email, password }) => {
     { expiresIn: ACCESS_EXPIRES }
   );
 
-  // 🔁 REFRESH TOKEN
   const refreshToken = jwt.sign(
     {
       id: user.id,
@@ -53,14 +55,14 @@ export const login = async ({ email, password }) => {
     { expiresIn: REFRESH_EXPIRES }
   );
 
-  // salva no banco
-  await pool.query(
-    `
-    INSERT INTO refresh_tokens (user_id, token, expires_at)
-    VALUES (?, ?, DATE_ADD(NOW(), INTERVAL 7 DAY))
-  `,
-    [user.id, refreshToken]
-  );
+  const expiresAt = new Date();
+  expiresAt.setDate(expiresAt.getDate() + 7);
+
+  await RefreshToken.create({
+    user_id: user.id,
+    token: refreshToken,
+    expires_at: expiresAt,
+  });
 
   return {
     accessToken,
@@ -68,39 +70,42 @@ export const login = async ({ email, password }) => {
     user: {
       id: user.id,
       name: user.name,
+      email: user.email,
       role: user.role,
       store_id: user.store_id,
     },
   };
 };
 
-//////////////////////////////////////////////////////////
-
 // 🔁 REFRESH TOKEN
 export const refresh = async (refreshToken) => {
   try {
     const decoded = jwt.verify(refreshToken, JWT_REFRESH_SECRET);
 
-    const [rows] = await pool.query(
-      'SELECT * FROM refresh_tokens WHERE token = ? AND expires_at > NOW()',
-      [refreshToken]
-    );
+    const savedToken = await RefreshToken.findOne({
+      where: {
+        token: refreshToken,
+        expires_at: {
+          [Op.gt]: new Date(),
+        },
+      },
+    });
 
-    if (rows.length === 0) {
+    if (!savedToken) {
       throw new Error('Refresh token expirado ou inválido');
     }
 
-    // busca usuário atualizado
-    const [users] = await pool.query(
-      'SELECT id, role, store_id FROM users WHERE id = ? AND is_active = 1',
-      [decoded.id]
-    );
+    const user = await User.findOne({
+      where: {
+        id: decoded.id,
+        is_active: true,
+      },
+      attributes: ['id', 'role', 'store_id'],
+    });
 
-    if (users.length === 0) {
+    if (!user) {
       throw new Error('Usuário inválido');
     }
-
-    const user = users[0];
 
     const newAccessToken = jwt.sign(
       {
@@ -118,31 +123,30 @@ export const refresh = async (refreshToken) => {
   }
 };
 
-//////////////////////////////////////////////////////////
-
 // 🚪 LOGOUT
 export const logout = async (refreshToken) => {
-  await pool.query('DELETE FROM refresh_tokens WHERE token = ?', [
-    refreshToken,
-  ]);
+  await RefreshToken.destroy({
+    where: {
+      token: refreshToken,
+    },
+  });
 
   return { message: 'Logout realizado com sucesso' };
 };
 
-//////////////////////////////////////////////////////////
-
-// pegar dados user
+// 👤 ME
 export const me = async (userId) => {
-  const [rows] = await pool.query(
-    `SELECT id, name, email, role, store_id 
-     FROM users 
-     WHERE id = ? AND is_active = 1`,
-    [userId]
-  );
+  const user = await User.findOne({
+    where: {
+      id: userId,
+      is_active: true,
+    },
+    attributes: ['id', 'name', 'email', 'role', 'store_id'],
+  });
 
-  if (rows.length === 0) {
+  if (!user) {
     throw new Error('Usuário não encontrado');
   }
 
-  return rows[0];
+  return user;
 };

@@ -7,9 +7,9 @@ const options = {
     info: {
       title: 'Estoke API',
       version: '1.0.0',
-      description: 'API de gestão de estoque (Estoke)',
+      description: 'Gestão de estoque',
       contact: {
-        name: 'Kelvyn Dev',
+        name: 'KelvynK Dev',
       },
     },
 
@@ -19,19 +19,21 @@ const options = {
         description: 'Servidor Local',
       },
       {
-        url: 'https://app.pastelariadoj.com.br',
+        url: 'https://api.pastelariadoj.com.br',
         description: 'Produção',
       },
     ],
 
     tags: [
       { name: 'Auth', description: 'Autenticação' },
-      { name: 'Categories', description: 'Categorias' },
-      { name: 'Products', description: 'Produtos' },
-      { name: 'Stock', description: 'Estoque' },
-      { name: 'Sales', description: 'Vendas' },
-      { name: 'Config', description: 'Configurações' },
-      { name: 'Stores', description: 'Lojas' },
+      { name: 'Usuários', description: 'Gerenciamento de usuários' },
+      { name: 'Categorias', description: 'Gerenciamento de categorias' },
+      { name: 'Produtos', description: 'Gerenciamento de produtos' },
+      { name: 'Insumos', description: 'Gerenciamento de insumos' },
+      { name: 'Estoque', description: 'Controle de estoque e movimentações' },
+      { name: 'Vendas', description: 'Gerenciamento de vendas' },
+      { name: 'Config', description: 'Configurações do sistema' },
+      { name: 'Lojas', description: 'Gerenciamento de lojas' },
     ],
 
     components: {
@@ -44,28 +46,31 @@ const options = {
       },
 
       schemas: {
-        // ================= USER =================
         User: {
           type: 'object',
           properties: {
-            id: { type: 'number', example: 1 },
-            name: { type: 'string', example: 'Admin' },
-            role: { type: 'string', example: 'admin' },
-            store_id: { type: 'number', example: 1 },
+            id: { type: 'integer', example: 1 },
+            name: { type: 'string', example: 'admin' },
+            email: { type: 'string', example: 'admin@admin.com' },
+            role: {
+              type: 'string',
+              enum: ['admin', 'manager', 'employee'],
+              example: 'admin',
+            },
+            store_id: { type: 'integer', example: 1 },
+            is_active: { type: 'boolean', example: true },
           },
         },
 
-        // ================= LOGIN REQUEST =================
         LoginRequest: {
           type: 'object',
           required: ['email', 'password'],
           properties: {
-            email: { type: 'string', example: 'admin@gmail.com' },
+            email: { type: 'string', example: 'admin@admin.com' },
             password: { type: 'string', example: 'admin' },
           },
         },
 
-        // ================= AUTH RESPONSE =================
         AuthResponse: {
           type: 'object',
           properties: {
@@ -77,7 +82,6 @@ const options = {
           },
         },
 
-        // ================= REFRESH =================
         RefreshRequest: {
           type: 'object',
           required: ['refreshToken'],
@@ -89,7 +93,6 @@ const options = {
           },
         },
 
-        // ================= GENERIC MESSAGE =================
         Message: {
           type: 'object',
           properties: {
@@ -100,13 +103,16 @@ const options = {
           },
         },
 
-        // ================= ERROR =================
         Error: {
           type: 'object',
           properties: {
             error: {
               type: 'string',
               example: 'Erro interno do servidor',
+            },
+            message: {
+              type: 'string',
+              example: 'Mensagem do erro',
             },
           },
         },
@@ -147,16 +153,8 @@ const options = {
         },
       },
     },
-
-    // 🔒 aplica auth global (pode remover se quiser granular)
-    security: [
-      {
-        bearerAuth: [],
-      },
-    ],
   },
 
-  // 🔥 lê todos os arquivos de rota
   apis: ['./src/routes/*.js'],
 };
 

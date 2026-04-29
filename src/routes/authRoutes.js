@@ -117,6 +117,20 @@ router.post('/refresh', authController.refresh);
  */
 router.post('/logout', authController.logout);
 
+/**
+ * @swagger
+ * /auth/me:
+ *   get:
+ *     summary: Retorna os dados do usuário autenticado
+ *     tags: [Auth]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Dados do usuário autenticado
+ *       401:
+ *         description: Token inválido ou não informado
+ */
 router.get('/me', authMiddleware, me);
 
 export default router;

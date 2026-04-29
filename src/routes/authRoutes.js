@@ -2,6 +2,10 @@ import express from 'express';
 import * as authController from '../auth/authController.js';
 import { authMiddleware } from '../middlewares/authMiddleware.js';
 import { me } from '../auth/authController.js';
+import {
+  loginLimiter,
+  refreshLimiter,
+} from '../middlewares/rateLimitMiddleware.js';
 
 const router = express.Router();
 
@@ -58,7 +62,7 @@ const router = express.Router();
  *       401:
  *         description: Credenciais inválidas
  */
-router.post('/login', authController.login);
+router.post('/login', loginLimiter, authController.login);
 
 /**
  * @swagger
@@ -90,7 +94,7 @@ router.post('/login', authController.login);
  *       401:
  *         description: Refresh token inválido
  */
-router.post('/refresh', authController.refresh);
+router.post('/refresh', refreshLimiter, authController.refresh);
 
 /**
  * @swagger

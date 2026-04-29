@@ -3,6 +3,7 @@ import pool from './config/database.js';
 import cors from 'cors';
 import swaggerUi from 'swagger-ui-express';
 import { swaggerSpec } from './config/swagger.js';
+import helmet from 'helmet';
 
 import authRoutes from './routes/authRoutes.js';
 import userRoutes from './routes/userRoutes.js';
@@ -24,6 +25,12 @@ app.use(
   cors({
     origin: ['http://localhost:5173', 'https://app.pastelariadoj.com.br'],
     credentials: true,
+  })
+);
+
+app.use(
+  helmet({
+    contentSecurityPolicy: false, // evita conflito com Swagger
   })
 );
 
